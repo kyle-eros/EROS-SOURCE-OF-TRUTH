@@ -1,0 +1,338 @@
+[
+  {
+    "id": "creator_stats_upload",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:40:36",
+    "modified": "2025-09-13 04:40:36",
+    "size_bytes": 13510,
+    "num_rows": 67,
+    "schema": [
+      {
+        "name": "Date_Time America_New_York",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Creator",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Subscription Net",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "New subscriptions Net",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Recurring subscriptions Net",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Tips Net",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Total earnings Net",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Contribution %",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "OF ranking",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Following",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Fans with renew on",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Renew on %",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "New fans",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Active fans",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Change in expired fan count",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Posts Net",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Message Net",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Streams Net",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Refund Net",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Creator group",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Avg spend per spender Net",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Avg spend per transaction Net",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Avg earnings per fan Net",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "Avg subscription length",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      }
+    ]
+  },
+  {
+    "id": "gmail_etl_daily",
+    "type": "TABLE",
+    "description": "DEPRECATED — replaced by layer_02_staging.gmail_events_staging",
+    "created": "2025-09-13 04:40:40",
+    "modified": "2025-09-13 04:40:40",
+    "size_bytes": 9630759,
+    "num_rows": 22387,
+    "schema": [
+      {
+        "name": "Message",
+        "type": "STRING"
+      },
+      {
+        "name": "Sending_time",
+        "type": "STRING"
+      },
+      {
+        "name": "Sender",
+        "type": "STRING"
+      },
+      {
+        "name": "Status",
+        "type": "STRING"
+      },
+      {
+        "name": "Price",
+        "type": "STRING"
+      },
+      {
+        "name": "Sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Earnings",
+        "type": "FLOAT"
+      },
+      {
+        "name": "Withdrawn_by",
+        "type": "STRING"
+      },
+      {
+        "name": "sending_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "sending_date",
+        "type": "DATE"
+      },
+      {
+        "name": "message_id",
+        "type": "STRING"
+      },
+      {
+        "name": "source_file",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "gmail_etl_daily_legacy_20250911",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:40:43",
+    "modified": "2025-09-13 04:40:43",
+    "size_bytes": 9630759,
+    "num_rows": 22387,
+    "schema": [
+      {
+        "name": "Message",
+        "type": "STRING"
+      },
+      {
+        "name": "Sending_time",
+        "type": "STRING"
+      },
+      {
+        "name": "Sender",
+        "type": "STRING"
+      },
+      {
+        "name": "Status",
+        "type": "STRING"
+      },
+      {
+        "name": "Price",
+        "type": "STRING"
+      },
+      {
+        "name": "Sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Earnings",
+        "type": "FLOAT"
+      },
+      {
+        "name": "Withdrawn_by",
+        "type": "STRING"
+      },
+      {
+        "name": "sending_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "sending_date",
+        "type": "DATE"
+      },
+      {
+        "name": "message_id",
+        "type": "STRING"
+      },
+      {
+        "name": "source_file",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "historical_message_staging",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:41:27",
+    "modified": "2025-09-13 04:41:27",
+    "size_bytes": 10016102,
+    "num_rows": 36009,
+    "schema": [
+      {
+        "name": "message_text",
+        "type": "STRING"
+      },
+      {
+        "name": "username_raw",
+        "type": "STRING"
+      },
+      {
+        "name": "sending_time",
+        "type": "STRING"
+      },
+      {
+        "name": "price_usd_raw",
+        "type": "STRING"
+      },
+      {
+        "name": "earnings_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "view_ratio",
+        "type": "FLOAT"
+      },
+      {
+        "name": "sent_buy_ratio",
+        "type": "FLOAT"
+      },
+      {
+        "name": "viewed_buy_ratio",
+        "type": "FLOAT"
+      },
+      {
+        "name": "message_type",
+        "type": "STRING"
+      },
+      {
+        "name": "loaded_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "sending_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "sending_date",
+        "type": "DATE"
+      }
+    ]
+  }
+]

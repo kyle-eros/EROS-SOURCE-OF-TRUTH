@@ -1,0 +1,49 @@
+{
+  "creationTime": "1756863299723",
+  "etag": "gm2JsOYchCgzYDu1lqKR3A==",
+  "id": "of-scheduler-proj:mart.v_scheduler_kpis_7d_28d",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1756863299723",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "scheduler",
+        "type": "STRING"
+      },
+      {
+        "name": "rev_7d",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "rev_28d",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "msgs_7d",
+        "type": "INTEGER"
+      },
+      {
+        "name": "msgs_28d",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_scheduler_kpis_7d_28d",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_scheduler_kpis_7d_28d"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH m AS (\n  SELECT username_std, sending_ts, earnings_usd\n  FROM `of-scheduler-proj.core.message_facts`\n  WHERE sending_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 28 DAY)\n),\nassign AS (\n  SELECT username_std, assigned_scheduler\n  FROM `of-scheduler-proj.core.page_dim`\n)\nSELECT\n  assign.assigned_scheduler AS scheduler,\n  SUM(IF(m.sending_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY), m.earnings_usd, 0)) AS rev_7d,\n  SUM(m.earnings_usd) AS rev_28d,\n  COUNTIF(m.sending_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)) AS msgs_7d,\n  COUNT(*) AS msgs_28d\nFROM m\nJOIN assign USING (username_std)\nGROUP BY scheduler\nORDER BY rev_28d DESC",
+    "useLegacySql": false
+  }
+}

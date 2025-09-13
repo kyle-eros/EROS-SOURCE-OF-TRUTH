@@ -1,0 +1,8 @@
+{
+  "total_datasets": 26,
+  "total_tables": 97,
+  "total_views": 99,
+  "total_materialized_views": 0,
+  "total_routines": 34,
+  "total_scheduled_queries": 12
+}

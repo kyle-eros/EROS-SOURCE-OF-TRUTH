@@ -1,0 +1,713 @@
+[
+  {
+    "id": "active_overrides",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:35:19",
+    "modified": "2025-09-13 04:35:19",
+    "size_bytes": 1969,
+    "num_rows": 83,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "include",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "note",
+        "type": "STRING"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "active_overrides_backup_20250909_192001",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:35:22",
+    "modified": "2025-09-13 04:35:22",
+    "size_bytes": 2942,
+    "num_rows": 128,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "include",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "note",
+        "type": "STRING"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "defaultValueExpression": "CURRENT_TIMESTAMP()"
+      }
+    ]
+  },
+  {
+    "id": "caption_fatigue_scores_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:35:26",
+    "modified": "2025-09-13 04:35:26",
+    "size_bytes": 1130736,
+    "num_rows": 6295,
+    "schema": [
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "times_used_30d",
+        "type": "INTEGER"
+      },
+      {
+        "name": "most_recent_use",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "first_use_30d",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "usage_dates",
+        "type": "DATE",
+        "mode": "REPEATED"
+      },
+      {
+        "name": "avg_days_between_uses",
+        "type": "FLOAT"
+      },
+      {
+        "name": "base_fatigue_score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "recency_multiplier",
+        "type": "FLOAT"
+      },
+      {
+        "name": "usage_density",
+        "type": "FLOAT"
+      },
+      {
+        "name": "fatigue_score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "fatigue_tier",
+        "type": "STRING"
+      },
+      {
+        "name": "days_since_last_use",
+        "type": "INTEGER"
+      },
+      {
+        "name": "calculated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "cooldown_settings_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:35:29",
+    "modified": "2025-09-13 04:35:29",
+    "size_bytes": 523,
+    "num_rows": 6,
+    "schema": [
+      {
+        "name": "setting_key",
+        "type": "STRING"
+      },
+      {
+        "name": "setting_value",
+        "type": "STRING"
+      },
+      {
+        "name": "description",
+        "type": "STRING"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "defaultValueExpression": "CURRENT_TIMESTAMP()"
+      },
+      {
+        "name": "updated_by",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "message_facts",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:04",
+    "modified": "2025-09-13 04:36:04",
+    "size_bytes": 11442186,
+    "num_rows": 37643,
+    "schema": [
+      {
+        "name": "row_key_v1",
+        "type": "STRING"
+      },
+      {
+        "name": "message_id",
+        "type": "STRING"
+      },
+      {
+        "name": "username_raw",
+        "type": "STRING"
+      },
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "sender",
+        "type": "STRING"
+      },
+      {
+        "name": "sending_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "sending_date",
+        "type": "DATE"
+      },
+      {
+        "name": "price_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "earnings_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "source_file",
+        "type": "STRING"
+      },
+      {
+        "name": "loaded_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "page_content_profile_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:10",
+    "modified": "2025-09-13 04:36:10",
+    "size_bytes": 92,
+    "num_rows": 1,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "content_types",
+        "type": "STRING",
+        "mode": "REPEATED"
+      },
+      {
+        "name": "max_explicitness",
+        "type": "STRING"
+      },
+      {
+        "name": "blocked_themes",
+        "type": "STRING",
+        "mode": "REPEATED"
+      },
+      {
+        "name": "allowed_themes",
+        "type": "STRING",
+        "mode": "REPEATED"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "defaultValueExpression": "CURRENT_TIMESTAMP()"
+      }
+    ]
+  },
+  {
+    "id": "page_knobs_learned_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:14",
+    "modified": "2025-09-13 04:36:14",
+    "size_bytes": 4828,
+    "num_rows": 53,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "quota_nudge",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hour_pool_nudge",
+        "type": "INTEGER"
+      },
+      {
+        "name": "price_mode_bias",
+        "type": "STRING"
+      },
+      {
+        "name": "confidence",
+        "type": "FLOAT"
+      },
+      {
+        "name": "reason",
+        "type": "STRING"
+      },
+      {
+        "name": "computed_at",
+        "type": "TIMESTAMP",
+        "defaultValueExpression": "CURRENT_TIMESTAMP()"
+      }
+    ]
+  },
+  {
+    "id": "page_learner_config_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:17",
+    "modified": "2025-09-13 04:36:17",
+    "size_bytes": 2909,
+    "num_rows": 54,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "auto_tune_enabled",
+        "type": "BOOLEAN",
+        "defaultValueExpression": "TRUE"
+      },
+      {
+        "name": "quota_min",
+        "type": "INTEGER",
+        "defaultValueExpression": "0"
+      },
+      {
+        "name": "quota_max",
+        "type": "INTEGER",
+        "defaultValueExpression": "12"
+      },
+      {
+        "name": "hour_pool_min",
+        "type": "INTEGER",
+        "defaultValueExpression": "6"
+      },
+      {
+        "name": "hour_pool_max",
+        "type": "INTEGER",
+        "defaultValueExpression": "24"
+      },
+      {
+        "name": "freeze_until",
+        "type": "DATE"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "defaultValueExpression": "CURRENT_TIMESTAMP()"
+      }
+    ]
+  },
+  {
+    "id": "page_onboarding_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:20",
+    "modified": "2025-09-13 04:36:20",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "defaultValueExpression": "CURRENT_TIMESTAMP()"
+      },
+      {
+        "name": "new_until",
+        "type": "DATE"
+      },
+      {
+        "name": "tier_pending",
+        "type": "BOOLEAN",
+        "defaultValueExpression": "TRUE"
+      }
+    ]
+  },
+  {
+    "id": "page_overrides",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:24",
+    "modified": "2025-09-13 04:36:24",
+    "size_bytes": 415,
+    "num_rows": 8,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "quota_min",
+        "type": "INTEGER"
+      },
+      {
+        "name": "quota_max",
+        "type": "INTEGER"
+      },
+      {
+        "name": "price_aggressiveness",
+        "type": "STRING"
+      },
+      {
+        "name": "burst_days",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hour_pool",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "page_personalization_weights",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:28",
+    "modified": "2025-09-13 04:36:28",
+    "size_bytes": 7435,
+    "num_rows": 139,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "weight_volume",
+        "type": "FLOAT"
+      },
+      {
+        "name": "weight_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "weight_hours",
+        "type": "FLOAT"
+      },
+      {
+        "name": "exploration_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "page_scheduler_override",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:31",
+    "modified": "2025-09-13 04:36:31",
+    "size_bytes": 3807,
+    "num_rows": 106,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "assigned_scheduler",
+        "type": "STRING"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "page_tier_override_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:33",
+    "modified": "2025-09-13 04:36:33",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "tier_override",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "reason",
+        "type": "STRING"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "defaultValueExpression": "CURRENT_TIMESTAMP()"
+      }
+    ]
+  },
+  {
+    "id": "page_tz",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:36",
+    "modified": "2025-09-13 04:36:36",
+    "size_bytes": 7603,
+    "num_rows": 236,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "tz",
+        "type": "STRING"
+      },
+      {
+        "name": "min_hod",
+        "type": "INTEGER"
+      },
+      {
+        "name": "max_hod",
+        "type": "INTEGER"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "migrated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "scheduler_user_map",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:39",
+    "modified": "2025-09-13 04:36:39",
+    "size_bytes": 835,
+    "num_rows": 17,
+    "schema": [
+      {
+        "name": "scheduler_name",
+        "type": "STRING"
+      },
+      {
+        "name": "email",
+        "type": "STRING"
+      },
+      {
+        "name": "display_name",
+        "type": "STRING"
+      },
+      {
+        "name": "can_view_all",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "settings_modeling",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:42",
+    "modified": "2025-09-13 04:36:42",
+    "size_bytes": 1968,
+    "num_rows": 58,
+    "schema": [
+      {
+        "name": "setting_key",
+        "type": "STRING"
+      },
+      {
+        "name": "setting_val",
+        "type": "STRING"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "defaultValueExpression": "CURRENT_TIMESTAMP()"
+      }
+    ]
+  },
+  {
+    "id": "starter_pack_by_tier_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:45",
+    "modified": "2025-09-13 04:36:45",
+    "size_bytes": 232,
+    "num_rows": 9,
+    "schema": [
+      {
+        "name": "tier",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "page_type",
+        "type": "STRING"
+      },
+      {
+        "name": "pack_id",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "defaultValueExpression": "CURRENT_TIMESTAMP()"
+      }
+    ]
+  },
+  {
+    "id": "starter_pack_policy_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:49",
+    "modified": "2025-09-13 04:36:49",
+    "size_bytes": 1407,
+    "num_rows": 21,
+    "schema": [
+      {
+        "name": "pack_id",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "dow",
+        "type": "INTEGER",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "ppv_quota",
+        "type": "INTEGER",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "hour_pool",
+        "type": "INTEGER"
+      },
+      {
+        "name": "min_hod",
+        "type": "INTEGER"
+      },
+      {
+        "name": "max_hod",
+        "type": "INTEGER"
+      },
+      {
+        "name": "price_mode_default",
+        "type": "STRING"
+      },
+      {
+        "name": "is_burst_dow",
+        "type": "INTEGER",
+        "defaultValueExpression": "0"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "defaultValueExpression": "CURRENT_TIMESTAMP()"
+      }
+    ]
+  },
+  {
+    "id": "username_alias",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:36:52",
+    "modified": "2025-09-13 04:36:52",
+    "size_bytes": 69194,
+    "num_rows": 2076,
+    "schema": [
+      {
+        "name": "alias_raw",
+        "type": "STRING"
+      },
+      {
+        "name": "alias_norm",
+        "type": "STRING"
+      },
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "note",
+        "type": "STRING"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  }
+]

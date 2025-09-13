@@ -1,0 +1,9 @@
+{
+  "dataset_id": "mart_view_backup_20250913",
+  "counts": {
+    "tables": 0,
+    "views": 0,
+    "materialized_views": 0,
+    "routines": 0
+  }
+}

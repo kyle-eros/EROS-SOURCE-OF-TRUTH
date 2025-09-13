@@ -1,0 +1,25 @@
+{
+  "id": "archive_20250913_mart",
+  "description": "",
+  "location": "US",
+  "created": "2025-09-13 04:42:14",
+  "modified": "2025-09-13 04:42:14",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

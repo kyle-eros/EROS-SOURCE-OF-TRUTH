@@ -1,0 +1,57 @@
+{
+  "creationTime": "1757209824990",
+  "etag": "wnweXTb82NAmOjLg7lSPbA==",
+  "id": "of-scheduler-proj:mart.v_non_dm_windows_7d_v1",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1757209824990",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "date_local",
+        "type": "DATE"
+      },
+      {
+        "name": "hod_local",
+        "type": "INTEGER"
+      },
+      {
+        "name": "slot_kind",
+        "type": "STRING"
+      },
+      {
+        "name": "channel",
+        "type": "STRING"
+      },
+      {
+        "name": "planned_local_datetime",
+        "type": "DATETIME"
+      },
+      {
+        "name": "scheduled_datetime_utc",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_non_dm_windows_7d_v1",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_non_dm_windows_7d_v1"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH cfg AS (\n  SELECT\n    -- CSVs from settings\n    (SELECT setting_val FROM `of-scheduler-proj.core.settings_modeling`\n     WHERE setting_key='drip_slots_csv'        LIMIT 1) AS drip_csv,\n    (SELECT setting_val FROM `of-scheduler-proj.core.settings_modeling`\n     WHERE setting_key='renewal_times_csv'     LIMIT 1) AS renew_csv,\n    (SELECT setting_val FROM `of-scheduler-proj.core.settings_modeling`\n     WHERE setting_key='link_drop_times_csv'   LIMIT 1) AS link_csv,\n    CAST((SELECT setting_val FROM `of-scheduler-proj.core.settings_modeling`\n          WHERE setting_key='randomize_offset_minutes' LIMIT 1) AS INT64) AS rand_off\n),\npages AS (\n  SELECT username_std, COALESCE(tz,'UTC') AS tz\n  FROM `of-scheduler-proj.core.page_dim`\n  WHERE COALESCE(LOWER(CAST(is_active AS STRING)) IN ('true','t','1','yes','y'), TRUE)\n),\ndays AS (\n  SELECT p.username_std, p.tz,\n         DATE_ADD(CURRENT_DATE(p.tz), INTERVAL d DAY) AS d,\n         d AS day_idx\n  FROM pages p\n  CROSS JOIN UNNEST(GENERATE_ARRAY(0,6)) AS d\n),\n-- mark paid (renewals only for these)\npaid AS (\n  SELECT username_std, COALESCE(renew_on_pct,0) > 0 AS is_paid\n  FROM `of-scheduler-proj.staging.creator_stats_latest`\n),\n\n/* -------- DripSet: \"HH:MM|TYPE\" where TYPE in {MM, Wall} -------- */\ndrip_tokens AS (\n  SELECT\n    dt.username_std, dt.tz, dt.d, dt.day_idx,\n    SPLIT(tok, '|')[OFFSET(0)] AS hhmm,\n    SPLIT(tok, '|')[OFFSET(1)] AS ch   -- 'MM' or 'Wall'\n  FROM days dt, cfg, UNNEST(SPLIT(cfg.drip_csv, ',')) AS tok\n),\ndrip AS (\n  SELECT\n    username_std,\n    -- local DATETIME (no tz arg)\n    DATETIME(d, PARSE_TIME('%H:%M', hhmm)) AS base_dt_local,\n    ch AS channel,  -- 'MM' or 'Wall'\n    -- deterministic jitter in [-rand_off, +rand_off]\n    CAST(\n      MOD(ABS(FARM_FINGERPRINT(CONCAT(username_std,'|',CAST(d AS STRING),'|DRIP|',hhmm,'|',ch))),\n          2*(SELECT rand_off FROM cfg)+1\n      ) - (SELECT rand_off FROM cfg)\n      AS INT64\n    ) AS minute_jitter,\n    tz\n  FROM drip_tokens\n),\n\n/* -------- Renewals: paid pages only, times listed in renew_csv -------- */\nrenew_tokens AS (\n  SELECT dt.username_std, dt.tz, dt.d, dt.day_idx, tok AS hhmm\n  FROM days dt, cfg, UNNEST(SPLIT(cfg.renew_csv, ',')) AS tok\n  JOIN paid p USING (username_std)\n  WHERE p.is_paid = TRUE\n),\nrenew AS (\n  SELECT\n    username_std,\n    DATETIME(d, PARSE_TIME('%H:%M', hhmm)) AS base_dt_local,\n    'Renewal' AS channel,\n    CAST(\n      MOD(ABS(FARM_FINGERPRINT(CONCAT(username_std,'|',CAST(d AS STRING),'|RENEW|',hhmm))),\n          2*(SELECT rand_off FROM cfg)+1\n      ) - (SELECT rand_off FROM cfg)\n      AS INT64\n    ) AS minute_jitter,\n    tz\n  FROM renew_tokens\n),\n\n/* -------- Link drops: windows like \"HH:MM-HH:MM\" \u2192 pick a minute inside -------- */\nlink_tokens AS (\n  SELECT\n    dt.username_std, dt.tz, dt.d, dt.day_idx,\n    SPLIT(tok, '-')[OFFSET(0)] AS hhmm_start,\n    SPLIT(tok, '-')[OFFSET(1)] AS hhmm_end\n  FROM days dt, cfg, UNNEST(SPLIT(cfg.link_csv, ',')) AS tok\n),\nlink_picked AS (\n  SELECT\n    lt.username_std,\n    -- local window start/end as DATETIME (no tz)\n    DATETIME(lt.d, PARSE_TIME('%H:%M', lt.hhmm_start)) AS win_start_dt,\n    DATETIME(lt.d, PARSE_TIME('%H:%M', lt.hhmm_end))   AS win_end_dt,\n    'LinkDrop' AS channel,\n    lt.tz\n  FROM link_tokens lt\n),\nlink_final AS (\n  SELECT\n    username_std,\n    DATETIME_ADD(win_start_dt,\n      INTERVAL CAST(MOD(\n        ABS(FARM_FINGERPRINT(CONCAT(username_std,'|',CAST(win_start_dt AS STRING),'|link'))),\n        GREATEST(DATETIME_DIFF(win_end_dt, win_start_dt, MINUTE), 1)\n      ) AS INT64) MINUTE\n    ) AS base_dt_local,\n    'LinkDrop' AS channel,\n    0 AS minute_jitter,\n    tz\n  FROM link_picked\n),\n\n/* -------- Union + compute outputs -------- */\nunioned AS (\n  SELECT * FROM drip\n  UNION ALL SELECT * FROM renew\n  UNION ALL SELECT * FROM link_final\n),\nwith_dt AS (\n  SELECT\n    u.username_std,\n    -- final local datetime\n    DATETIME_ADD(u.base_dt_local, INTERVAL u.minute_jitter MINUTE) AS planned_local_datetime,\n    u.channel,\n    u.tz\n  FROM unioned u\n)\nSELECT\n  w.username_std,\n  DATE(w.planned_local_datetime) AS date_local,\n  EXTRACT(HOUR FROM w.planned_local_datetime) AS hod_local,\n  -- map channel to a normalized kind for ops\n  CASE\n    WHEN w.channel='MM'    THEN 'drip_mm'\n    WHEN w.channel='Wall'  THEN 'drip_wall'\n    WHEN w.channel='Renewal' THEN 'renewal'\n    ELSE 'link_drop'\n  END AS slot_kind,\n  w.channel,\n  w.planned_local_datetime,\n  -- if you need UTC for automation, compute it here\n  TIMESTAMP(w.planned_local_datetime, w.tz) AS scheduled_datetime_utc\nFROM with_dt w\nORDER BY username_std, planned_local_datetime, slot_kind",
+    "useLegacySql": false
+  }
+}

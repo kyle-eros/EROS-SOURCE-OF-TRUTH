@@ -1,0 +1,77 @@
+{
+  "creationTime": "1757142582370",
+  "etag": "Wx3n3a23144ItP7LgoKYPQ==",
+  "id": "of-scheduler-proj:mart.v_weekly_template_7d_pages",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1757142582370",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "page_type",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduler_name",
+        "type": "STRING"
+      },
+      {
+        "name": "tz",
+        "type": "STRING"
+      },
+      {
+        "name": "date_local",
+        "type": "DATE"
+      },
+      {
+        "name": "slot_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod_local",
+        "type": "INTEGER"
+      },
+      {
+        "name": "price_usd",
+        "type": "FLOAT"
+      },
+      {
+        "name": "planned_local_datetime",
+        "type": "DATETIME"
+      },
+      {
+        "name": "scheduled_datetime_utc",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "tracking_hash",
+        "type": "STRING"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_weekly_template_7d_pages",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_weekly_template_7d_pages"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH base AS (\n  SELECT * FROM `of-scheduler-proj.mart.weekly_template_7d_latest`\n),\ntypes AS (\n  SELECT username_std, page_type FROM `of-scheduler-proj.core.v_pages`\n),\nassign AS (\n  SELECT username_std, ANY_VALUE(assigned_scheduler) AS assigned_scheduler\n  FROM `of-scheduler-proj.core.page_dim`\n  WHERE COALESCE(is_active, TRUE)\n  GROUP BY username_std\n)\nSELECT\n  b.username_std,\n  t.page_type,\n  CONCAT(b.username_std,'__',t.page_type) AS username_page,\n  COALESCE(a.assigned_scheduler, b.scheduler_name, 'unassigned') AS scheduler_name,\n  b.tz, b.date_local, b.slot_rank, b.hod_local, b.price_usd,\n  b.planned_local_datetime, b.scheduled_datetime_utc,\n  TO_BASE64(SHA256(CONCAT(\n    b.username_std,'__',t.page_type,'|',CAST(b.date_local AS STRING),'|',CAST(b.hod_local AS STRING)\n  ))) AS tracking_hash\nFROM base b\nJOIN types t USING (username_std)\nLEFT JOIN assign a USING (username_std)",
+    "useLegacySql": false
+  }
+}

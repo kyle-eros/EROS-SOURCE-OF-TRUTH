@@ -1,0 +1,228 @@
+[
+  {
+    "id": "active_ml_config",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-11 09:56:15",
+    "modified": "2025-09-11 09:56:15",
+    "query": "SELECT\n  page_state,\n  environment,\n  \n  -- Extract key parameters for easy access\n  JSON_VALUE(parameters, '$.weights.performance') AS w_performance,\n  JSON_VALUE(parameters, '$.weights.exploration') AS w_exploration,\n  JSON_VALUE(parameters, '$.weights.recency') AS w_recency,\n  JSON_VALUE(parameters, '$.weights.stability') AS w_stability,\n  \n  JSON_VALUE(parameters, '$.exploration.epsilon_percent') AS epsilon_percent,\n  JSON_VALUE(parameters, '$.exploration.ucb_c') AS ucb_c,\n  \n  JSON_VALUE(parameters, '$.cooldown.min_hours') AS min_cooldown_hours,\n  JSON_VALUE(parameters, '$.cooldown.fatigue_threshold') AS fatigue_threshold,\n  \n  -- Full JSON for complex logic\n  parameters AS full_config,\n  \n  -- Metadata\n  version_number,\n  experiment_id,\n  experiment_allocation,\n  created_at,\n  expires_at\n  \nFROM `of-scheduler-proj.ops_config.ml_parameters`\nWHERE is_active = TRUE\n  AND environment = 'prod'\n  AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP())",
+    "schema": [
+      {
+        "name": "page_state",
+        "type": "STRING"
+      },
+      {
+        "name": "environment",
+        "type": "STRING"
+      },
+      {
+        "name": "w_performance",
+        "type": "STRING"
+      },
+      {
+        "name": "w_exploration",
+        "type": "STRING"
+      },
+      {
+        "name": "w_recency",
+        "type": "STRING"
+      },
+      {
+        "name": "w_stability",
+        "type": "STRING"
+      },
+      {
+        "name": "epsilon_percent",
+        "type": "STRING"
+      },
+      {
+        "name": "ucb_c",
+        "type": "STRING"
+      },
+      {
+        "name": "min_cooldown_hours",
+        "type": "STRING"
+      },
+      {
+        "name": "fatigue_threshold",
+        "type": "STRING"
+      },
+      {
+        "name": "full_config",
+        "type": "JSON"
+      },
+      {
+        "name": "version_number",
+        "type": "INTEGER"
+      },
+      {
+        "name": "experiment_id",
+        "type": "STRING"
+      },
+      {
+        "name": "experiment_allocation",
+        "type": "FLOAT"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "expires_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "cooldown_settings_v1",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-13 14:48:31",
+    "modified": "2025-09-13 14:48:31",
+    "query": "SELECT\n  \"caption\" AS entity,\n  CAST(setting_val AS INT64) AS cooldown_days,     -- numeric (most callers use this)\n  \"caption_cooldown_days\" AS setting_key,          -- legacy key shape (string)\n  CAST(setting_val AS STRING) AS setting_value     -- legacy value shape (string)\nFROM `of-scheduler-proj.ops_config.settings_modeling`\nWHERE setting_key = \"caption_cooldown_days\"",
+    "schema": [
+      {
+        "name": "entity",
+        "type": "STRING"
+      },
+      {
+        "name": "cooldown_days",
+        "type": "INTEGER"
+      },
+      {
+        "name": "setting_key",
+        "type": "STRING"
+      },
+      {
+        "name": "setting_value",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "page_personalization_weights",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-13 14:42:15",
+    "modified": "2025-09-13 14:42:15",
+    "query": "SELECT\n  username_std AS username_page,\n  1.0 AS weight_recency,\n  1.0 AS weight_engagement,\n  1.0 AS weight_revenue\nFROM `of-scheduler-proj.layer_04_semantic.v_pages`",
+    "schema": [
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "weight_recency",
+        "type": "FLOAT"
+      },
+      {
+        "name": "weight_engagement",
+        "type": "FLOAT"
+      },
+      {
+        "name": "weight_revenue",
+        "type": "FLOAT"
+      }
+    ]
+  },
+  {
+    "id": "page_state",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-13 14:49:29",
+    "modified": "2025-09-13 14:49:29",
+    "query": "SELECT\n  username_std AS username_page,                   -- canonical key\n  IFNULL(is_active, TRUE) AS is_active,            -- boolean shape\n  CASE WHEN IFNULL(is_active, TRUE) THEN \"ACTIVE\" ELSE \"PAUSED\" END AS state,  -- label shape\n  username_std                                     -- legacy alias\nFROM `of-scheduler-proj.layer_04_semantic.v_page_dim`",
+    "schema": [
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "state",
+        "type": "STRING"
+      },
+      {
+        "name": "username_std",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "v_page_knobs_learned_v1",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-13 10:07:51",
+    "modified": "2025-09-13 10:07:51",
+    "query": "SELECT username_std, 0 AS quota_nudge, 0 AS hour_pool_nudge, CAST(NULL AS STRING) AS price_mode_bias FROM layer_04_semantic.v_page_dim",
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "quota_nudge",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hour_pool_nudge",
+        "type": "INTEGER"
+      },
+      {
+        "name": "price_mode_bias",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "v_page_overrides",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-13 10:07:43",
+    "modified": "2025-09-13 10:07:43",
+    "query": "SELECT username_std, quota_min, quota_max, hour_pool_override FROM ops_config.page_overrides",
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "quota_min",
+        "type": "INTEGER"
+      },
+      {
+        "name": "quota_max",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hour_pool_override",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "v_scheduler_overrides",
+    "type": "VIEW",
+    "description": "Refactored view to show current scheduler assignments directly from the creator dimension.",
+    "created": "2025-09-13 01:45:20",
+    "modified": "2025-09-13 01:45:20",
+    "query": "SELECT username AS username_std, scheduler_info.scheduler_email AS assigned_scheduler, CAST(scheduler_info.assignment_date AS TIMESTAMP) AS updated_at FROM `of-scheduler-proj.layer_03_foundation.dim_creator` WHERE is_current_record = TRUE AND scheduler_info.scheduler_email IS NOT NULL",
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "assigned_scheduler",
+        "type": "STRING"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  }
+]

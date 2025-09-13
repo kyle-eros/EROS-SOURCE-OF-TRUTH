@@ -1,0 +1,9 @@
+{
+  "dataset_id": "migration",
+  "counts": {
+    "tables": 0,
+    "views": 2,
+    "materialized_views": 0,
+    "routines": 0
+  }
+}

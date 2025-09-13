@@ -1,0 +1,25 @@
+{
+  "id": "layer_02_staging",
+  "description": "Layer 2: Staging - cleaned, typed, deduplicated data",
+  "location": "US",
+  "created": "2025-09-11 08:50:54",
+  "modified": "2025-09-11 08:50:54",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

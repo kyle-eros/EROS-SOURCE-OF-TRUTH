@@ -1,0 +1,25 @@
+{
+  "id": "archive_20250912_core",
+  "description": "",
+  "location": "US",
+  "created": "2025-09-13 04:27:34",
+  "modified": "2025-09-13 04:27:34",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

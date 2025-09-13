@@ -1,0 +1,81 @@
+{
+  "creationTime": "1757192725133",
+  "etag": "sWV3REqaMmes9H5mbdPROA==",
+  "id": "of-scheduler-proj:mart.v_caption_rank_next24_v3",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1757192725133",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "slot_dt_local",
+        "type": "DATETIME"
+      },
+      {
+        "name": "dow",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod",
+        "type": "INTEGER"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "p_buy_eb",
+        "type": "FLOAT"
+      },
+      {
+        "name": "rps_eb_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "se_bonus",
+        "type": "FLOAT"
+      },
+      {
+        "name": "style_score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "is_cooldown_ok",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "score_final",
+        "type": "FLOAT"
+      },
+      {
+        "name": "rn",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_caption_rank_next24_v3",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_caption_rank_next24_v3"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH params AS (\n  SELECT\n    CAST(COALESCE(MAX(CASE WHEN setting_key='prior_nu_buy'        THEN setting_val END), '200') AS FLOAT64) AS nu_buy,\n    CAST(COALESCE(MAX(CASE WHEN setting_key='w_style_lift'        THEN setting_val END), '0.10') AS FLOAT64) AS w_style,\n    CAST(COALESCE(MAX(CASE WHEN setting_key='ucb_sigma_min'       THEN setting_val END), '0.15') AS FLOAT64) AS ucb_sigma_min,\n    CAST(COALESCE(MAX(CASE WHEN setting_key='ucb_sigma_max'       THEN setting_val END), '0.60') AS FLOAT64) AS ucb_sigma_max,\n    CAST(COALESCE(MAX(CASE WHEN setting_key='ucb_bonus_cap_mult'  THEN setting_val END), '2.0')  AS FLOAT64) AS ucb_cap_mult\n  FROM `of-scheduler-proj.core.settings_modeling`\n),\nslots AS (\n  SELECT username_page, slot_dt_local, dow, hod, reco_dm_type, reco_price_usd\n  FROM `of-scheduler-proj.mart.v_slot_recommendations_next24_v3`\n),\n-- candidate pool (force canonical order & types)\ncand0_typed AS (\n  SELECT\n    CAST(username_page AS STRING)         AS username_page,\n    CAST(caption_id   AS STRING)          AS caption_id,\n    CAST(caption_hash AS STRING)          AS caption_hash,\n    CAST(caption_text AS STRING)          AS caption_text,\n    CAST(len_bin      AS STRING)          AS len_bin,\n    CAST(emoji_bin    AS STRING)          AS emoji_bin,\n    CAST(has_cta      AS BOOL)            AS has_cta,\n    CAST(has_urgency  AS BOOL)            AS has_urgency,\n    CAST(ends_with_question AS BOOL)      AS ends_with_question,\n    CAST(last_used_ts AS TIMESTAMP)       AS last_used_ts,\n    CAST(is_cooldown_ok AS BOOL)          AS is_cooldown_ok\n  FROM `of-scheduler-proj.mart.v_caption_candidate_pool_v3`\n),\npages_in_play AS (SELECT DISTINCT username_page FROM slots),\npages_without_cand AS (\n  SELECT p.username_page\n  FROM pages_in_play p\n  LEFT JOIN (SELECT DISTINCT username_page FROM cand0_typed) c USING (username_page)\n  WHERE c.username_page IS NULL\n),\n-- one synthetic (prior-only) fallback per page\nfallback_cand_typed AS (\n  SELECT\n    CAST(username_page AS STRING)                                    AS username_page,\n    CAST('fallback_default' AS STRING)                                AS caption_id,\n    CAST(TO_HEX(SHA256(CONCAT(username_page,'|fallback_default'))) AS STRING) AS caption_hash,\n    CAST(NULL AS STRING)                                             AS caption_text,\n    CAST('short' AS STRING)                                          AS len_bin,\n    CAST('no_emoji' AS STRING)                                       AS emoji_bin,\n    CAST(FALSE AS BOOL)                                              AS has_cta,\n    CAST(FALSE AS BOOL)                                              AS has_urgency,\n    CAST(FALSE AS BOOL)                                              AS ends_with_question,\n    CAST(NULL  AS TIMESTAMP)                                         AS last_used_ts,\n    CAST(TRUE  AS BOOL)                                              AS is_cooldown_ok\n  FROM pages_without_cand\n),\ncand AS (\n  SELECT * FROM cand0_typed\n  UNION ALL\n  SELECT * FROM fallback_cand_typed\n),\nstyle AS (SELECT * FROM `of-scheduler-proj.mart.v_dm_style_lift_28d_v3`),\nstats AS (SELECT * FROM `of-scheduler-proj.mart.v_caption_decayed_stats_60d_v3`),\npri   AS (SELECT username_page, mu_buy_sent FROM `of-scheduler-proj.mart.v_page_priors_l90_v3`),\n-- recent volume for adaptive exploration\nslot_vol AS (\n  SELECT username_page, dow, hod, SUM(sent) AS sent_28d\n  FROM `of-scheduler-proj.mart.fn_dm_send_facts`(28)\n  GROUP BY 1,2,3\n),\npage_vol AS (\n  SELECT username_page, SUM(decayed_sent) AS decayed_sent_60d\n  FROM `of-scheduler-proj.mart.v_caption_decayed_stats_60d_v3`\n  GROUP BY 1\n),\nslot_cand AS (\n  SELECT\n    s.username_page, s.slot_dt_local, s.dow, s.hod, s.reco_dm_type,\n    GREATEST(s.reco_price_usd,0.0) AS price,\n    c.caption_id, c.caption_hash, c.caption_text,\n    c.len_bin, c.emoji_bin, c.has_cta, c.has_urgency, c.ends_with_question,\n    c.is_cooldown_ok,\n    SUM(CASE WHEN c.is_cooldown_ok THEN 1 ELSE 0 END)\n      OVER (PARTITION BY s.username_page, s.slot_dt_local) AS ok_cnt_in_slot,\n    COALESCE(TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), c.last_used_ts, DAY), 999999) AS days_since_last_use\n  FROM slots s\n  JOIN cand  c USING (username_page)\n),\nstyled AS (\n  SELECT\n    b.*,\n    (SELECT w_style FROM params) * COALESCE(sl.lift_vs_slot_smooth_clamped, 0.0) AS style_score\n  FROM slot_cand b\n  LEFT JOIN style sl\n    ON sl.username_page=b.username_page AND sl.dow=b.dow AND sl.hod=b.hod\n   AND sl.len_bin=b.len_bin AND sl.emoji_bin=b.emoji_bin\n   AND sl.has_cta=b.has_cta AND sl.has_urgency=b.has_urgency\n   AND sl.ends_with_question=b.ends_with_question\n),\neb AS (\n  SELECT\n    t.*,\n    COALESCE(st.decayed_purchases, 0.0) AS x,\n    COALESCE(st.decayed_sent,      0.0) AS n,\n    COALESCE(pr.mu_buy_sent,0.08)  AS mu_page,\n    (SELECT nu_buy FROM params)    AS nu,\n    SAFE_DIVIDE(COALESCE(st.decayed_purchases,0.0) + (SELECT nu_buy FROM params) * COALESCE(pr.mu_buy_sent,0.08),\n                COALESCE(st.decayed_sent,0.0)      + (SELECT nu_buy FROM params)) AS p_buy_eb\n  FROM styled t\n  LEFT JOIN stats st USING (username_page, caption_hash)\n  LEFT JOIN pri   pr USING (username_page)\n),\nucb AS (\n  SELECT\n    e.*,\n    GREATEST(e.n + e.nu, 1.0) AS n_eff,\n    COALESCE(sv.sent_28d, 0.0)         AS sent_28d,\n    COALESCE(pv.decayed_sent_60d, 0.0) AS decayed_sent_60d,\n    (SELECT ucb_sigma_min FROM params) +\n    ((SELECT ucb_sigma_max FROM params) - (SELECT ucb_sigma_min FROM params)) *\n    ( 0.5 * (1.0 / (1.0 + LOG10(1.0 + COALESCE(sv.sent_28d,0.0))))\n    + 0.5 * (1.0 / (1.0 + LOG10(1.0 + COALESCE(pv.decayed_sent_60d,0.0)))) ) AS sigma_adapted,\n    CASE WHEN e.price > 0 THEN\n      (\n        ( (SELECT ucb_sigma_min FROM params) +\n          ((SELECT ucb_sigma_max FROM params) - (SELECT ucb_sigma_min FROM params)) *\n          ( 0.5 * (1.0 / (1.0 + LOG10(1.0 + COALESCE(sv.sent_28d,0.0))))\n          + 0.5 * (1.0 / (1.0 + LOG10(1.0 + COALESCE(pv.decayed_sent_60d,0.0)))) )\n        )\n        * e.price * SQRT( GREATEST(e.p_buy_eb*(1.0-e.p_buy_eb),0.0) / GREATEST(e.n + e.nu,1.0) )\n      )\n    ELSE 0.0 END AS se_bonus_raw,\n    (e.price * e.p_buy_eb) AS rps_eb_price\n  FROM eb e\n  LEFT JOIN slot_vol sv USING (username_page, dow, hod)\n  LEFT JOIN page_vol pv USING (username_page)\n),\n-- allow all; tiny penalty only when cooldown had to be relaxed\nallowed AS (\n  SELECT\n    u.*,\n    TRUE AS is_allowed,\n    CASE WHEN u.ok_cnt_in_slot > 0 THEN 0.0 ELSE -0.000001 * u.days_since_last_use END AS cooldown_penalty\n  FROM ucb u\n),\nscored AS (\n  SELECT\n    a.*,\n    LEAST(a.se_bonus_raw, (SELECT ucb_cap_mult FROM params) * a.rps_eb_price) AS se_bonus,\n    (a.rps_eb_price\n     + LEAST(a.se_bonus_raw, (SELECT ucb_cap_mult FROM params) * a.rps_eb_price)\n     + COALESCE(a.style_score,0.0)\n     + a.cooldown_penalty) AS score_final\n  FROM allowed a\n  WHERE a.is_allowed = TRUE\n)\nSELECT\n  username_page, slot_dt_local, dow, hod,\n  caption_id, caption_text,\n  p_buy_eb, rps_eb_price, se_bonus, style_score, is_cooldown_ok,\n  score_final,\n  ROW_NUMBER() OVER (PARTITION BY username_page, slot_dt_local ORDER BY score_final DESC, caption_id) AS rn\nFROM scored",
+    "useLegacySql": false
+  }
+}

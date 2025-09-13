@@ -1,0 +1,65 @@
+{
+  "creationTime": "1757221719921",
+  "etag": "/UN18vh8/SFpb9FILbcHWA==",
+  "id": "of-scheduler-proj:mart.v_learning_signals_28d_v1",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1757221719921",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "sends_28d",
+        "type": "INTEGER"
+      },
+      {
+        "name": "earnings_28d",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "rps_28d",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "p50_price",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "sell_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "rps_recent",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "rps_prev",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "earnings_lift_ratio",
+        "type": "NUMERIC"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_learning_signals_28d_v1",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_learning_signals_28d_v1"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH mf AS (\n  SELECT\n    username_std,\n    DATE(TIMESTAMP_TRUNC(sending_ts, DAY)) AS d,\n    SAFE_CAST(price_usd    AS NUMERIC) AS price_usd,\n    SAFE_CAST(earnings_usd AS NUMERIC) AS earnings_usd\n  FROM `of-scheduler-proj.core.message_facts`\n  WHERE sending_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 28 DAY)\n),\nby_page AS (\n  SELECT\n    username_std,\n    COUNT(*) AS sends_28d,\n    SUM(earnings_usd) AS earnings_28d,\n    SAFE_DIVIDE(SUM(earnings_usd), COUNT(*)) AS rps_28d,\n    APPROX_QUANTILES(price_usd, 101)[OFFSET(50)] AS p50_price,\n    COUNTIF(earnings_usd > 0) / COUNT(*) AS sell_rate\n  FROM mf\n  GROUP BY username_std\n),\ntrend AS (\n  SELECT\n    a.username_std,\n    SAFE_DIVIDE(a.earnings, GREATEST(a.sends,1)) AS rps_recent,\n    SAFE_DIVIDE(b.earnings, GREATEST(b.sends,1)) AS rps_prev,\n    SAFE_DIVIDE(a.earnings - b.earnings, NULLIF(b.earnings,0)) AS earnings_lift_ratio\n  FROM (\n    SELECT username_std, COUNT(*) AS sends, SUM(earnings_usd) AS earnings\n    FROM mf\n    WHERE d >= DATE_SUB(CURRENT_DATE(), INTERVAL 14 DAY)\n    GROUP BY username_std\n  ) a\n  FULL JOIN (\n    SELECT username_std, COUNT(*) AS sends, SUM(earnings_usd) AS earnings\n    FROM mf\n    WHERE d < DATE_SUB(CURRENT_DATE(), INTERVAL 14 DAY)\n      AND d >= DATE_SUB(CURRENT_DATE(), INTERVAL 28 DAY)\n    GROUP BY username_std\n  ) b USING (username_std)\n)\nSELECT\n  p.username_std, p.sends_28d, p.earnings_28d, p.rps_28d, p.p50_price, p.sell_rate,\n  t.rps_recent, t.rps_prev, t.earnings_lift_ratio\nFROM by_page p\nLEFT JOIN trend t USING (username_std)",
+    "useLegacySql": false
+  }
+}

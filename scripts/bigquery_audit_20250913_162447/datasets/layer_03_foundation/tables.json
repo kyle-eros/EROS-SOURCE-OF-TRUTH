@@ -1,0 +1,449 @@
+[
+  {
+    "id": "dim_caption",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 09:31:17",
+    "modified": "2025-09-11 09:31:17",
+    "size_bytes": 12109375,
+    "num_rows": 28250,
+    "schema": [
+      {
+        "name": "caption_key",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_category",
+        "type": "STRING"
+      },
+      {
+        "name": "content_tags",
+        "type": "STRING",
+        "mode": "REPEATED"
+      },
+      {
+        "name": "explicitness_level",
+        "type": "INTEGER"
+      },
+      {
+        "name": "creator_username",
+        "type": "STRING"
+      },
+      {
+        "name": "creator_page_type",
+        "type": "STRING"
+      },
+      {
+        "name": "creator_page_state",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_length",
+        "type": "INTEGER"
+      },
+      {
+        "name": "tag_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "created_timestamp",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "valid_from",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "valid_to",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "etl_source",
+        "type": "STRING"
+      },
+      {
+        "name": "etl_timestamp",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "dim_creator",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 09:31:25",
+    "modified": "2025-09-11 11:46:56",
+    "size_bytes": 13985,
+    "num_rows": 122,
+    "schema": [
+      {
+        "name": "creator_key",
+        "type": "STRING"
+      },
+      {
+        "name": "username",
+        "type": "STRING"
+      },
+      {
+        "name": "account_type",
+        "type": "STRING"
+      },
+      {
+        "name": "page_classifications",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "primary_type",
+            "type": "STRING"
+          },
+          {
+            "name": "secondary_types",
+            "type": "STRING",
+            "mode": "REPEATED"
+          },
+          {
+            "name": "confidence_score",
+            "type": "FLOAT"
+          },
+          {
+            "name": "classification_date",
+            "type": "DATE"
+          }
+        ]
+      },
+      {
+        "name": "performance_metrics",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "performance_segment",
+            "type": "STRING"
+          },
+          {
+            "name": "avg_daily_revenue",
+            "type": "NUMERIC"
+          },
+          {
+            "name": "revenue_volatility",
+            "type": "FLOAT"
+          },
+          {
+            "name": "active_days",
+            "type": "INTEGER"
+          }
+        ]
+      },
+      {
+        "name": "account_status",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduler_info",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "scheduler_code",
+            "type": "STRING"
+          },
+          {
+            "name": "scheduler_email",
+            "type": "STRING"
+          },
+          {
+            "name": "assignment_date",
+            "type": "DATE"
+          }
+        ]
+      },
+      {
+        "name": "created_date",
+        "type": "DATE"
+      },
+      {
+        "name": "last_active_date",
+        "type": "DATE"
+      },
+      {
+        "name": "valid_from",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "valid_to",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "is_current_record",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "etl_source",
+        "type": "STRING"
+      },
+      {
+        "name": "etl_timestamp",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "fact_gmail_message_send",
+    "type": "TABLE",
+    "description": "Gmail ETL fact table - partitioned by EVENT date for analytics. Source data from ingestion-partitioned staging.",
+    "created": "2025-09-12 02:04:37",
+    "modified": "2025-09-12 05:17:38",
+    "size_bytes": 4474226,
+    "num_rows": 8387,
+    "schema": [
+      {
+        "name": "message_send_key",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "sender",
+        "type": "STRING"
+      },
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "message_sent_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "message_sent_date",
+        "type": "DATE"
+      },
+      {
+        "name": "price_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "revenue_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "sent_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "viewed_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "purchased_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "view_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "purchase_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "purchase_given_view",
+        "type": "FLOAT"
+      },
+      {
+        "name": "revenue_per_send",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "price_tier",
+        "type": "STRING"
+      },
+      {
+        "name": "send_size_category",
+        "type": "STRING"
+      },
+      {
+        "name": "message_id",
+        "type": "STRING"
+      },
+      {
+        "name": "source_file",
+        "type": "STRING"
+      },
+      {
+        "name": "ingestion_run_id",
+        "type": "STRING"
+      },
+      {
+        "name": "ingested_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "last_updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "fact_message_send",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 09:31:46",
+    "modified": "2025-09-11 11:43:42",
+    "size_bytes": 11127269,
+    "num_rows": 37670,
+    "schema": [
+      {
+        "name": "message_send_key",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_key",
+        "type": "STRING"
+      },
+      {
+        "name": "creator_key",
+        "type": "STRING"
+      },
+      {
+        "name": "send_timestamp",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "send_date",
+        "type": "DATE"
+      },
+      {
+        "name": "time_of_day_utc",
+        "type": "INTEGER"
+      },
+      {
+        "name": "day_of_week",
+        "type": "INTEGER"
+      },
+      {
+        "name": "week_of_year",
+        "type": "INTEGER"
+      },
+      {
+        "name": "month_of_year",
+        "type": "INTEGER"
+      },
+      {
+        "name": "messages_sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "messages_viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "messages_purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "view_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "purchase_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "conversion_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "price_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "gross_revenue_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "net_revenue_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "revenue_per_send",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "revenue_per_purchase",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "response_metrics",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "time_to_first_view_seconds",
+            "type": "INTEGER"
+          },
+          {
+            "name": "time_to_first_purchase_seconds",
+            "type": "INTEGER"
+          },
+          {
+            "name": "response_category",
+            "type": "STRING"
+          },
+          {
+            "name": "bounce_rate",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "scheduler_code",
+        "type": "STRING"
+      },
+      {
+        "name": "send_type",
+        "type": "STRING"
+      },
+      {
+        "name": "campaign_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "quality_flag",
+        "type": "STRING"
+      },
+      {
+        "name": "etl_source",
+        "type": "STRING"
+      },
+      {
+        "name": "etl_timestamp",
+        "type": "TIMESTAMP"
+      }
+    ]
+  }
+]

@@ -1,0 +1,65 @@
+{
+  "creationTime": "1756934683975",
+  "etag": "BzsCGRLxp8mOpdvpgCTnQA==",
+  "id": "of-scheduler-proj:mart.v_weekly_template_7d_v7",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1756934683975",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduler_name",
+        "type": "STRING"
+      },
+      {
+        "name": "tz",
+        "type": "STRING"
+      },
+      {
+        "name": "date_local",
+        "type": "DATE"
+      },
+      {
+        "name": "slot_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod_local",
+        "type": "INTEGER"
+      },
+      {
+        "name": "price_usd",
+        "type": "FLOAT"
+      },
+      {
+        "name": "planned_local_datetime",
+        "type": "DATETIME"
+      },
+      {
+        "name": "scheduled_datetime_utc",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_weekly_template_7d_v7",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_weekly_template_7d_v7"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH quota AS (\n  SELECT username_std, assigned_scheduler, tz, dow, ppv_quota, hour_pool, is_burst_dow\n  FROM `of-scheduler-proj.mart.v_daily_quota_policy_v3`\n),\npd0 AS (\n  SELECT\n    username_std,\n    CASE WHEN min_hod IS NULL AND max_hod IS NULL THEN NULL\n         WHEN min_hod IS NULL THEN 0\n         ELSE GREATEST(0, LEAST(23, CAST(min_hod AS INT64))) END AS min0,\n    CASE WHEN min_hod IS NULL AND max_hod IS NULL THEN NULL\n         WHEN max_hod IS NULL THEN 23\n         ELSE GREATEST(0, LEAST(23, CAST(max_hod AS INT64))) END AS max0\n  FROM `of-scheduler-proj.core.page_dim`\n  WHERE COALESCE(LOWER(CAST(is_active AS STRING)) IN ('true','t','1','yes','y'), TRUE)\n),\npd AS (\n  SELECT\n    username_std,\n    CASE WHEN min0 IS NOT NULL AND max0 IS NOT NULL AND min0 > max0 THEN max0 ELSE min0 END AS min_hod_eff,\n    CASE WHEN min0 IS NOT NULL AND max0 IS NOT NULL AND min0 > max0 THEN min0 ELSE max0 END AS max_hod_eff\n  FROM pd0\n),\nweights AS (\n  SELECT username_std,\n         COALESCE(weight_price,     1.00) AS w_price,\n         COALESCE(exploration_rate, 0.15) AS explore_rate\n  FROM `of-scheduler-proj.core.page_personalization_weights`\n),\nstate AS (\n  SELECT username_std, COALESCE(page_state,'balance') AS page_state\n  FROM `of-scheduler-proj.core.page_state`\n),\ndow_hod AS (  -- weekday\u00d7hour perf\n  SELECT username_std, dow_local AS dow, hod_local AS hod, score\n  FROM `of-scheduler-proj.mart.v_mm_dow_hod_180d_local_v2`\n),\ndow_pref AS (  -- pre-agg\n  SELECT username_std, dow, hod, SUM(score) AS s\n  FROM dow_hod\n  GROUP BY username_std, dow, hod\n),\nbest_global AS (  -- global fallback\n  SELECT username_std, hod_local AS hod, SUM(score) AS s_g\n  FROM `of-scheduler-proj.mart.v_mm_dow_hod_180d_local_v2`\n  GROUP BY username_std, hod_local\n),\nprice_prof AS (\n  SELECT username_std, p35, p50, p60, p80, p90, price_mode\n  FROM `of-scheduler-proj.mart.v_mm_price_profile_90d_v2`\n),\ndefaults AS ( SELECT ARRAY<INT64>[21,20,18,15,12,22,19,16,13,10,23,14,17,9,8,11] AS default_hours ),\n\n/* ---------- 7 calendar days per page ---------- */\ndays AS (\n  SELECT\n    q.username_std, q.assigned_scheduler, q.tz,\n    p.min_hod_eff, p.max_hod_eff,\n    DATE_ADD(CURRENT_DATE(q.tz), INTERVAL d DAY) AS date_local,\n    MOD(EXTRACT(DAYOFWEEK FROM DATE_ADD(CURRENT_DATE(q.tz), INTERVAL d DAY)) + 5, 7) AS dow_local,\n    q.ppv_quota AS quota, q.hour_pool AS hour_pool, q.is_burst_dow,\n    ABS(FARM_FINGERPRINT(CONCAT(q.username_std, CAST(DATE_ADD(CURRENT_DATE(q.tz), INTERVAL d DAY) AS STRING)))) AS seed_day\n  FROM quota q\n  JOIN pd p USING (username_std)\n  CROSS JOIN UNNEST(GENERATE_ARRAY(0,6)) AS d\n  WHERE MOD(EXTRACT(DAYOFWEEK FROM DATE_ADD(CURRENT_DATE(q.tz), INTERVAL d DAY)) + 5, 7) = q.dow\n    AND q.ppv_quota > 0\n),\n\n/* ---------- Candidate hours via JOINs ---------- */\ncand_union AS (\n  -- DOW-specific\n  SELECT d.*, dp.hod AS h, dp.s AS s, 1 AS src\n  FROM days d\n  JOIN dow_pref dp\n    ON dp.username_std = d.username_std\n   AND dp.dow         = d.dow_local\n  UNION ALL\n  -- global fallback\n  SELECT d.*, g.hod AS h, g.s_g AS s, 2 AS src\n  FROM days d\n  JOIN best_global g\n    ON g.username_std = d.username_std\n  UNION ALL\n  -- default last resort\n  SELECT d.*, h AS h, 0 AS s, 3 AS src\n  FROM days d\n  CROSS JOIN UNNEST((SELECT default_hours FROM defaults)) AS h\n),\ncand_filtered AS (\n  SELECT * FROM cand_union\n  WHERE h BETWEEN COALESCE(min_hod_eff,0) AND COALESCE(max_hod_eff,23)\n),\ncand_dedup AS (\n  SELECT *,\n         ROW_NUMBER() OVER (\n           PARTITION BY username_std, date_local, h\n           ORDER BY src, s DESC, h\n         ) AS rn_h\n  FROM cand_filtered\n),\ncand_ranked AS ( SELECT * FROM cand_dedup WHERE rn_h = 1 ),\npool AS (\n  SELECT\n    username_std, assigned_scheduler, tz, date_local, dow_local,\n    quota, hour_pool, is_burst_dow, seed_day,\n    COALESCE(min_hod_eff,0)  AS min_h,\n    COALESCE(max_hod_eff,23) AS max_h,\n    ARRAY_AGG(h ORDER BY src, s DESC, h LIMIT 24) AS hours_ranked\n  FROM cand_ranked\n  GROUP BY username_std, assigned_scheduler, tz, date_local, dow_local,\n           quota, hour_pool, is_burst_dow, seed_day, min_hod_eff, max_hod_eff\n),\n\n/* ---------- Segment + anchors ---------- */\nsegments AS (\n  SELECT\n    p.*,\n    IF(ARRAY_LENGTH(p.hours_ranked) > 0, p.hours_ranked[OFFSET(0)],                               COALESCE(p.min_h, 9))  AS span_start,\n    IF(ARRAY_LENGTH(p.hours_ranked) > 0, p.hours_ranked[OFFSET(ARRAY_LENGTH(p.hours_ranked)-1)], COALESCE(p.max_h, 21)) AS span_end\n  FROM pool p\n),\nanchors AS (\n  SELECT\n    s.username_std, s.assigned_scheduler, s.tz, s.date_local, s.dow_local,\n    s.quota, s.hour_pool, s.is_burst_dow, s.seed_day,\n    s.hours_ranked, s.min_h, s.max_h,\n    LEAST(s.max_h, GREATEST(s.min_h, s.span_start)) AS a_start,\n    GREATEST(s.min_h, LEAST(s.max_h, s.span_end))   AS a_end\n  FROM segments s\n),\nanchor_grid AS (\n  SELECT\n    a.*,\n    (a.a_end - a.a_start) AS span_len,\n    LEAST(6, GREATEST(2,\n      CAST(ROUND(SAFE_DIVIDE(GREATEST(a.a_end - a.a_start, 2), GREATEST(a.quota-1, 1))) AS INT64)\n    )) AS seg_w\n  FROM anchors a\n),\nanchor_rows AS (\n  SELECT\n    g.username_std, g.assigned_scheduler, g.tz, g.date_local, g.dow_local,\n    g.hour_pool, g.is_burst_dow, g.seed_day, g.hours_ranked,\n    g.min_h, g.max_h, g.span_len, g.seg_w, g.quota,\n    pos AS slot_rank,\n    CAST(ROUND(g.a_start + pos * g.seg_w + MOD(g.seed_day + pos, 3) - 1) AS INT64) AS anchor_h,\n    CASE WHEN g.quota = 1 THEN CAST(ROUND((g.a_start + g.a_end)/2.0) AS INT64) ELSE NULL END AS anchor_h_center\n  FROM anchor_grid g\n  CROSS JOIN UNNEST(GENERATE_ARRAY(0, LEAST(g.quota-1, 9))) AS pos\n),\n\n/* ---------- Pick nearest candidate hour (effective pool avoids collisions) ---------- */\nnearest_pick AS (\n  SELECT\n    r.* EXCEPT(hours_ranked),\n    cand AS hod_cand,\n    off  AS cand_rank,\n    ROW_NUMBER() OVER (\n      PARTITION BY r.username_std, r.date_local, r.slot_rank\n      ORDER BY ABS(cand - COALESCE(r.anchor_h_center, r.anchor_h)), off, cand\n    ) AS rn\n  FROM anchor_rows r\n  CROSS JOIN UNNEST(r.hours_ranked) AS cand WITH OFFSET off\n  WHERE cand BETWEEN r.min_h AND r.max_h\n    AND off < GREATEST(r.hour_pool, LEAST(ARRAY_LENGTH(r.hours_ranked), r.quota * 3))\n),\npicked0 AS (\n  SELECT\n    username_std, assigned_scheduler, tz, date_local, dow_local,\n    slot_rank, is_burst_dow, seed_day,\n    hod_cand AS hod_local\n  FROM nearest_pick\n  WHERE rn = 1\n),\n\n/* ---------- Closed-form spacing: enforce \u22652h and \u22646h inside [min_h, max_h] ---------- */\nday_bounds AS (\n  SELECT username_std, date_local, MIN(min_h) AS min_h, MAX(max_h) AS max_h\n  FROM pool\n  GROUP BY username_std, date_local\n),\nordered AS (\n  SELECT\n    p.*,\n    ROW_NUMBER() OVER (PARTITION BY p.username_std, p.date_local ORDER BY p.hod_local) AS idx,\n    COUNT(*)    OVER (PARTITION BY p.username_std, p.date_local)                         AS n_slots\n  FROM picked0 p\n),\nwith_bounds AS (\n  SELECT o.*, b.min_h, b.max_h\n  FROM ordered o\n  JOIN day_bounds b USING (username_std, date_local)\n),\nlower_env AS (  -- ensure \u22652h and start bound\n  SELECT\n    *,\n    -- closed-form lower envelope: 2*idx + prefix_max(hod_local - 2*idx)\n    (2*idx\n      + MAX(hod_local - 2*idx) OVER (\n          PARTITION BY username_std, date_local\n          ORDER BY idx\n          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n        )\n    )                                                          AS env2,\n    -- minimal feasible hour for idx given min_h and \u22652h\n    (min_h + 2*(idx-1))                                       AS start2\n  FROM with_bounds\n),\ny AS (\n  SELECT\n    *,\n    GREATEST(hod_local, env2, start2) AS y_lower  -- apply the \u22652h lower envelope\n  FROM lower_env\n),\nupper_env AS (  -- cap by \u22646h and room to finish by max_h\n  SELECT\n    *,\n    -- \u22646h forward cap in closed form: 6*idx + prefix_min(y_lower - 6*idx)\n    (6*idx\n      + MIN(y_lower - 6*idx) OVER (\n          PARTITION BY username_std, date_local\n          ORDER BY idx\n          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n        )\n    )                                                         AS cap6,\n    -- leave room for remaining slots with \u22652h up to max_h\n    (max_h - 2*(n_slots - idx))                               AS cap2_end\n  FROM y\n),\nspaced AS (\n  SELECT\n    username_std, assigned_scheduler, tz, date_local, dow_local,\n    slot_rank, is_burst_dow, seed_day,\n    -- final hour: inside all caps and window\n    CAST(\n      LEAST(\n        GREATEST(y_lower, min_h),      -- not below lower bound/window\n        cap6,                          -- \u22646h\n        cap2_end,                      -- room to finish with \u22652h\n        max_h                          -- window top\n      ) AS INT64\n    ) AS hod_final\n  FROM upper_env\n),\n\n/* ---------- Price ladder ---------- */\nladder AS (\n  SELECT\n    s.username_std, s.assigned_scheduler, s.tz, s.date_local, s.dow_local,\n    s.slot_rank, s.hod_final AS hod_local, s.is_burst_dow,\n    pp.p35, pp.p50, pp.p60, pp.p80, pp.p90,\n    COALESCE(st.page_state,'balance') AS page_state,\n    COALESCE(w.w_price, 1.00) AS w_price,\n    CASE\n      WHEN COALESCE(w.w_price, 1.00) >= 1.10 THEN 'premium'\n      WHEN COALESCE(w.w_price, 1.00) <= 0.95 THEN 'value'\n      ELSE COALESCE(pp.price_mode,'balanced')\n    END AS price_mode_eff\n  FROM spaced s\n  LEFT JOIN price_prof pp USING (username_std)\n  LEFT JOIN state      st USING (username_std)\n  LEFT JOIN weights    w  USING (username_std)\n),\npriced_base AS (\n  SELECT\n    l.*,\n    CAST(\n      CASE\n        WHEN l.price_mode_eff = 'premium' OR l.is_burst_dow = 1 THEN\n          CASE l.page_state\n            WHEN 'grow'   THEN COALESCE(l.p60,l.p50,l.p35,6)\n            WHEN 'retain' THEN COALESCE(l.p80,l.p60,l.p50,8)\n            ELSE               COALESCE(l.p90,l.p80,l.p60,9)\n          END\n        WHEN l.price_mode_eff = 'value' THEN\n          CASE l.page_state\n            WHEN 'grow'   THEN COALESCE(l.p35,l.p50,5)\n            WHEN 'retain' THEN coalesce(l.p50,l.p60,6)\n            ELSE               COALESCE(l.p60,l.p50,7)\n          END\n        ELSE\n          CASE l.page_state\n            WHEN 'grow'   THEN COALESCE(l.p50,l.p35,5)\n            WHEN 'retain' THEN COALESCE(l.p60,l.p50,6)\n            ELSE               COALESCE(l.p80,l.p60,8)\n          END\n      END AS FLOAT64\n    ) AS price1\n  FROM ladder l\n),\nb1 AS ( SELECT *, price1 + (ROW_NUMBER() OVER (PARTITION BY username_std, date_local, CAST(price1 AS INT64) ORDER BY slot_rank) - 1) AS price2 FROM priced_base ),\nb2 AS ( SELECT *, price2 + (ROW_NUMBER() OVER (PARTITION BY username_std, date_local, CAST(price2 AS INT64) ORDER BY slot_rank) - 1) AS price3 FROM b1 ),\nb3 AS ( SELECT *, price3 + (ROW_NUMBER() OVER (PARTITION BY username_std, date_local, CAST(price3 AS INT64) ORDER BY slot_rank) - 1) AS price4 FROM b2 )\nSELECT\n  username_std,\n  assigned_scheduler AS scheduler_name,\n  tz,\n  date_local,\n  slot_rank,\n  CAST(LEAST(23, GREATEST(0, hod_local)) AS INT64) AS hod_local,\n  CAST(price4 AS FLOAT64) AS price_usd,\n  DATETIME(date_local, TIME(CAST(LEAST(23, GREATEST(0, hod_local)) AS INT64),0,0)) AS planned_local_datetime,\n  TIMESTAMP(DATETIME(date_local, TIME(CAST(LEAST(23, GREATEST(0, hod_local)) AS INT64),0,0)), tz) AS scheduled_datetime_utc\nFROM b3\nORDER BY username_std, date_local, slot_rank",
+    "useLegacySql": false
+  }
+}

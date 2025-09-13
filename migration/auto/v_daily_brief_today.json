@@ -1,0 +1,104 @@
+{
+  "creationTime": "1756877576428",
+  "etag": "NrSzBW0SAmzkoYBLt2KYUg==",
+  "id": "of-scheduler-proj:mart.v_daily_brief_today",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1756877576428",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "assigned_scheduler",
+        "type": "STRING"
+      },
+      {
+        "name": "page_state",
+        "type": "STRING"
+      },
+      {
+        "name": "state_note",
+        "type": "STRING"
+      },
+      {
+        "mode": "REPEATED",
+        "name": "best_hours_local",
+        "type": "INTEGER"
+      },
+      {
+        "fields": [
+          {
+            "name": "p25",
+            "type": "NUMERIC"
+          },
+          {
+            "name": "p50",
+            "type": "NUMERIC"
+          },
+          {
+            "name": "p75",
+            "type": "NUMERIC"
+          }
+        ],
+        "name": "price_band_suggested",
+        "type": "RECORD"
+      },
+      {
+        "fields": [
+          {
+            "name": "caption_id",
+            "type": "STRING"
+          },
+          {
+            "name": "caption_text",
+            "type": "STRING"
+          },
+          {
+            "name": "caption_type",
+            "type": "STRING"
+          },
+          {
+            "name": "explicitness",
+            "type": "STRING"
+          },
+          {
+            "name": "theme_tags",
+            "type": "STRING"
+          },
+          {
+            "name": "hist_revenue",
+            "type": "NUMERIC"
+          }
+        ],
+        "mode": "REPEATED",
+        "name": "caption_suggestions",
+        "type": "RECORD"
+      },
+      {
+        "mode": "REPEATED",
+        "name": "avoid_caption_hashes_7d",
+        "type": "STRING"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_daily_brief_today",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_daily_brief_today"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH hz AS (\n  SELECT\n    l.username_std,\n    l.hod_local,\n    -- time-decay weight: recent messages count more\n    SUM(earnings_usd * EXP(-TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), l.sending_ts, DAY)/60.0)) AS score\n  FROM `of-scheduler-proj.mart.v_messages_local_180d` l\n  GROUP BY l.username_std, l.hod_local\n),\nbest_hours AS (\n  SELECT username_std, ARRAY_AGG(hod_local ORDER BY score DESC LIMIT 5) AS best_hours_local\n  FROM hz\n  GROUP BY username_std\n),\nprice_band AS (\n  SELECT\n    username_std,\n    APPROX_QUANTILES(price_usd, 20)[OFFSET(8)]  AS p25,\n    APPROX_QUANTILES(price_usd, 20)[OFFSET(10)] AS p50,\n    APPROX_QUANTILES(price_usd, 20)[OFFSET(14)] AS p75\n  FROM `of-scheduler-proj.core.message_facts`\n  WHERE sending_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 60 DAY)\n  GROUP BY username_std\n),\nrecent_caption_use AS (\n  SELECT username_std, caption_hash, MAX(DATE(sending_ts)) AS last_used_date\n  FROM `of-scheduler-proj.core.message_facts`\n  WHERE sending_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 180 DAY)\n  GROUP BY username_std, caption_hash\n),\ncaption_perf AS (\n  SELECT username_std, caption_hash,\n         SUM(earnings_usd) AS cap_rev,\n         COUNT(*)          AS cap_msgs\n  FROM `of-scheduler-proj.core.message_facts`\n  WHERE caption_hash IS NOT NULL\n    AND sending_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 180 DAY)\n  GROUP BY username_std, caption_hash\n),\ncandidates AS (\n  SELECT\n    cd.username_std,\n    cd.caption_id,\n    cd.caption_hash,\n    cd.caption_text,\n    cd.caption_type,\n    cd.explicitness,\n    cd.theme_tags,\n    COALESCE(cp.cap_rev, 0) AS hist_revenue,\n    COALESCE(rcu.last_used_date, DATE '1900-01-01') AS last_used_date\n  FROM `of-scheduler-proj.core.caption_dim` cd\n  LEFT JOIN caption_perf cp USING (username_std, caption_hash)\n  LEFT JOIN recent_caption_use rcu USING (username_std, caption_hash)\n),\ntop_captions AS (\n  SELECT\n    username_std,\n    ARRAY_AGG(STRUCT(caption_id, caption_text, caption_type, explicitness, theme_tags, hist_revenue)\n              ORDER BY (DATE_DIFF(CURRENT_DATE(), last_used_date, DAY) >= 28) DESC,\n                       hist_revenue DESC\n              LIMIT 10) AS caption_suggestions\n  FROM candidates\n  GROUP BY username_std\n),\navoid_last7 AS (\n  SELECT username_std, ARRAY_AGG(DISTINCT caption_hash) AS avoid_caption_hashes_7d\n  FROM `of-scheduler-proj.core.message_facts`\n  WHERE sending_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)\n  GROUP BY username_std\n)\nSELECT\n  p.username_std,\n  p.assigned_scheduler,\n  s.page_state,\n  s.state_note,\n  COALESCE(bh.best_hours_local, []) AS best_hours_local,\n  STRUCT(pb.p25, pb.p50, pb.p75)     AS price_band_suggested,\n  COALESCE(tc.caption_suggestions, []) AS caption_suggestions,\n  COALESCE(a.avoid_caption_hashes_7d, []) AS avoid_caption_hashes_7d\nFROM `of-scheduler-proj.core.page_dim` p\nLEFT JOIN best_hours  bh USING (username_std)\nLEFT JOIN price_band  pb USING (username_std)\nLEFT JOIN top_captions tc USING (username_std)\nLEFT JOIN avoid_last7 a  USING (username_std)\nLEFT JOIN `of-scheduler-proj.core.page_state` s USING (username_std)",
+    "useLegacySql": false
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "layer_03_foundation",
+  "description": "Layer 3: Foundation - core business entities and facts",
+  "location": "US",
+  "created": "2025-09-11 08:50:56",
+  "modified": "2025-09-11 08:50:56",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

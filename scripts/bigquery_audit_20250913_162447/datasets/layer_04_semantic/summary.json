@@ -1,0 +1,9 @@
+{
+  "dataset_id": "layer_04_semantic",
+  "counts": {
+    "tables": 2,
+    "views": 16,
+    "materialized_views": 0,
+    "routines": 0
+  }
+}

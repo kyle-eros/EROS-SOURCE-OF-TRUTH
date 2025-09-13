@@ -1,0 +1,25 @@
+{
+  "id": "routine_backup_20250913",
+  "description": "",
+  "location": "US",
+  "created": "2025-09-13 05:59:46",
+  "modified": "2025-09-13 05:59:46",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

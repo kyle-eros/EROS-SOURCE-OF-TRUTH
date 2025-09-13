@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+.env.local
+*.env
+
+# Credentials
+credentials.json
+token.json
+service-account-key.json
+*.key
+*.pem
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Data files (sensitive)
+data/*.csv
+data/*.json
+data/*.xlsx
+!data/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+tmp/
+
+# Google Apps Script local
+.clasprc.json
+.clasp.json.backup
+
+# BigQuery exports
+exports/
+backups/
+
+# Python
+*.py[cod]
+*$py.class
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# OS files
+Thumbs.db
+desktop.ini

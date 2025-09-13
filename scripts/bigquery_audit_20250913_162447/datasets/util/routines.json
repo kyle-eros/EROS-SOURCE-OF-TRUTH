@@ -1,0 +1,484 @@
+[
+  {
+    "id": "canonicalize_caption",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-09 07:29:08",
+    "modified": "2025-09-09 07:29:08",
+    "arguments": [
+      {
+        "name": "text",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "REGEXP_REPLACE(\n    NORMALIZE(LOWER(TRIM(COALESCE(text,''))), NFKC),\n    r'\\s+', ' '  -- Just collapse whitespace\n  )"
+  },
+  {
+    "id": "caption_hash_v2",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-09 07:24:23",
+    "modified": "2025-09-09 07:24:23",
+    "arguments": [
+      {
+        "name": "text",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "TO_HEX(SHA256(`of-scheduler-proj.util.canonicalize_caption`(text)))"
+  },
+  {
+    "id": "clean_html",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-02 19:39:13",
+    "modified": "2025-09-02 19:39:13",
+    "arguments": [
+      {
+        "name": "s",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "TRIM(\n    REGEXP_REPLACE(\n      REGEXP_REPLACE(\n        REGEXP_REPLACE(COALESCE(s, ''), r'<[^>]+>', ''),   -- remove HTML tags\n        r'&nbsp;?', ' '                                    -- replace non-breaking spaces\n      ),\n      r'\\s+', ' '                                          -- collapse whitespace\n    )\n  )"
+  },
+  {
+    "id": "compute_theme_tags",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-09 07:24:28",
+    "modified": "2025-09-09 07:24:28",
+    "arguments": [
+      {
+        "name": "text",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "CASE\n    WHEN text IS NULL OR TRIM(text) = '' THEN 'untagged'\n    ELSE (\n      SELECT ARRAY_TO_STRING(\n        ARRAY(\n          SELECT DISTINCT tag FROM (\n            SELECT 'birthday' AS tag FROM (SELECT 1) WHERE REGEXP_CONTAINS(LOWER(text), r'\\b(birthday|bday|cake|candle|celebration|party)\\b')\n            UNION ALL\n            SELECT 'romantic' AS tag FROM (SELECT 1) WHERE REGEXP_CONTAINS(LOWER(text), r'\\b(love|heart|romance|valentine|kiss|cuddle|darling|sweetheart|date|romantic)\\b')\n            UNION ALL\n            SELECT 'motivational' AS tag FROM (SELECT 1) WHERE REGEXP_CONTAINS(LOWER(text), r'\\b(motivat|inspir|success|achieve|dream|goal|believe|strong|confident|power|positiv)\\b')\n            UNION ALL\n            SELECT 'seasonal' AS tag FROM (SELECT 1) WHERE REGEXP_CONTAINS(LOWER(text), r'\\b(christmas|halloween|thanksgiving|easter|summer|winter|spring|fall|holiday|xmas|nye|new year)\\b')\n            UNION ALL\n            SELECT 'flirty' AS tag FROM (SELECT 1) WHERE REGEXP_CONTAINS(LOWER(text), r'\\b(flirt|tease|wink|cute|naughty|playful|cheeky)\\b')\n            UNION ALL\n            SELECT 'greeting' AS tag FROM (SELECT 1) WHERE REGEXP_CONTAINS(LOWER(text), r'^(hey|hi|hello|good morning|good night|gm|gn|what\\'s up|how are you)\\b')\n            UNION ALL\n            SELECT 'promotional' AS tag FROM (SELECT 1) WHERE REGEXP_CONTAINS(LOWER(text), r'\\b(sale|discount|offer|deal|promo|special|exclusive|limited|bundle|ppv)\\b')\n            UNION ALL\n            SELECT 'question' AS tag FROM (SELECT 1) WHERE REGEXP_CONTAINS(text, r'\\?\\s*$')\n            UNION ALL\n            SELECT 'urgent' AS tag FROM (SELECT 1) WHERE REGEXP_CONTAINS(LOWER(text), r'\\b(now|today|tonight|hurry|quick|limited|expires|last chance)\\b|[!]{2,}')\n          )\n        ),\n        ','\n      )\n    )\n  END"
+  },
+  {
+    "id": "det_jitter",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-07 06:16:59",
+    "modified": "2025-09-07 06:16:59",
+    "arguments": [
+      {
+        "name": "min_off",
+        "dataType": {
+          "typeKind": "INT64"
+        }
+      },
+      {
+        "name": "max_off",
+        "dataType": {
+          "typeKind": "INT64"
+        }
+      },
+      {
+        "name": "key",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": null,
+    "definition": "CAST(ROUND(min_off + MOD(ABS(FARM_FINGERPRINT(key)), (max_off - min_off + 1))) AS INT64)"
+  },
+  {
+    "id": "detect_explicitness",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-09 07:24:28",
+    "modified": "2025-09-09 07:24:28",
+    "arguments": [
+      {
+        "name": "text",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "CASE\n    -- Explicit content markers\n    WHEN REGEXP_CONTAINS(LOWER(COALESCE(text,'')), r'\\b(xxx|nsfw|adult|explicit|nude|naked|sex|fuck|pussy|cock|dick|cum|orgasm|masturbat|porn)\\b') THEN 'explicit'\n    -- Moderate content markers\n    WHEN REGEXP_CONTAINS(LOWER(COALESCE(text,'')), r'\\b(sexy|hot|naughty|tease|seduc|flirt|kiss|touch|body|curves|lingerie|underwear|bra|panties|shower|bed|bedroom|intimate)\\b') THEN 'moderate'\n    -- Commercial/promotional content is often moderate\n    WHEN REGEXP_CONTAINS(LOWER(COALESCE(text,'')), r'\\b(buy|unlock|tip|bundle|sale|special|discount|exclusive|vip|premium|ppv|pay per view)\\b') THEN 'moderate'\n    -- Mild/friendly content markers\n    WHEN REGEXP_CONTAINS(LOWER(COALESCE(text,'')), r'\\b(cute|sweet|hello|hi|good morning|good night|love|heart|beautiful|gorgeous|amazing|wonderful)\\b') THEN 'mild'\n    -- Default for unclassified content\n    ELSE 'pending_review'\n  END"
+  },
+  {
+    "id": "emoji_bin",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-09 07:29:10",
+    "modified": "2025-09-09 07:29:10",
+    "arguments": [
+      {
+        "name": "text",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "CASE\n    WHEN `of-scheduler-proj.util.emoji_count`(text) = 0 THEN 'none'\n    WHEN `of-scheduler-proj.util.emoji_count`(text) <= 2 THEN 'low'\n    WHEN `of-scheduler-proj.util.emoji_count`(text) <= 5 THEN 'medium'\n    ELSE 'high'\n  END"
+  },
+  {
+    "id": "emoji_count",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-09 07:29:09",
+    "modified": "2025-09-09 07:29:09",
+    "arguments": [
+      {
+        "name": "text",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "INT64"
+    },
+    "definition": "COALESCE(\n    ARRAY_LENGTH(\n      REGEXP_EXTRACT_ALL(COALESCE(text,''), r'[😀-🙏🌀-🗿💀-📿🚀-🛿]')\n    ), 0\n  )"
+  },
+  {
+    "id": "ends_with_question",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-09 07:24:27",
+    "modified": "2025-09-09 07:24:27",
+    "arguments": [
+      {
+        "name": "text",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "BOOL"
+    },
+    "definition": "REGEXP_CONTAINS(TRIM(COALESCE(text,'')), r'\\?\\s*$')"
+  },
+  {
+    "id": "file_username",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-07 14:44:58",
+    "modified": "2025-09-07 14:44:58",
+    "arguments": [
+      {
+        "name": "path",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "TRIM(\n    REGEXP_REPLACE(\n      REGEXP_REPLACE(\n        REGEXP_REPLACE(\n          REGEXP_REPLACE(\n            REGEXP_REPLACE(\n              REGEXP_REPLACE(\n                -- 1) last path segment\n                REGEXP_EXTRACT(path, r'([^/]+)$'),\n                -- 2) strip extension\n                r'\\.[A-Za-z0-9]+$', ''\n              ),\n              -- 3) underscores → spaces\n              r'[_]+', ' '\n            ),\n            -- 4) strip \" YYYYMMDD hhmmss\" or similar numeric tails\n            r'(\\s|_|-)?20\\d{6,8}(\\s|_|-)?\\d{6}$', ''\n          ),\n          -- 5) strip generic 8+6 numeric timestamp tails\n          r'(\\s|_|-)?\\d{8}(\\s|_|-)?\\d{6}$', ''\n        ),\n        -- 6) strip \"YYYY-MM-DD hh.mm.ss\" style tails\n        r'(\\s|_|-)?20\\d{2}-\\d{2}-\\d{2}(\\s|_|-)?\\d{2}\\.\\d{2}\\.\\d{2}$', ''\n      ),\n      -- 7) collapse whitespace\n      r'\\s+', ' '\n    )\n  )"
+  },
+  {
+    "id": "get_page_type",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-05 04:03:34",
+    "modified": "2025-09-05 04:03:34",
+    "arguments": [
+      {
+        "name": "s",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "CASE\n    WHEN REGEXP_CONTAINS(LOWER(s), r'(^|\\W)vip(\\W|$)')  THEN 'vip'\n    WHEN REGEXP_CONTAINS(LOWER(s), r'(^|\\W)paid(\\W|$)') THEN 'paid'\n    WHEN REGEXP_CONTAINS(LOWER(s), r'(^|\\W)free(\\W|$)') THEN 'free'\n    ELSE 'main'\n  END"
+  },
+  {
+    "id": "halflife_weight",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-06 19:27:03",
+    "modified": "2025-09-06 19:27:03",
+    "arguments": [
+      {
+        "name": "ts",
+        "dataType": {
+          "typeKind": "TIMESTAMP"
+        }
+      },
+      {
+        "name": "half_life_days",
+        "dataType": {
+          "typeKind": "FLOAT64"
+        }
+      }
+    ],
+    "return_type": null,
+    "definition": "POWER(0.5, TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), ts, DAY) / NULLIF(half_life_days, 0.0))"
+  },
+  {
+    "id": "has_cta",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-09 07:24:26",
+    "modified": "2025-09-09 07:24:26",
+    "arguments": [
+      {
+        "name": "text",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "BOOL"
+    },
+    "definition": "REGEXP_CONTAINS(\n    LOWER(COALESCE(text,'')), \n    r'\\b(click|tap|swipe|join|subscribe|follow|buy|get|claim|unlock|watch|see|check out|sign up|register|download|install|start|try|discover|learn more|shop now|order|book|reserve|dm|message|open|tip|bundle|sale|special|discount)\\b'\n  )"
+  },
+  {
+    "id": "has_urgency",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-09 07:24:26",
+    "modified": "2025-09-09 07:24:26",
+    "arguments": [
+      {
+        "name": "text",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "BOOL"
+    },
+    "definition": "REGEXP_CONTAINS(\n    LOWER(COALESCE(text,'')), \n    r'\\b(now|today|tonight|hurry|quick|fast|limited|exclusive|ending|expires|last chance|don\\'t miss|only|final|urgent|immediately|asap|right now|act fast|while supplies last)\\b|[!]{2,}'\n  )"
+  },
+  {
+    "id": "length_bin",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-09 07:24:24",
+    "modified": "2025-09-09 07:24:24",
+    "arguments": [
+      {
+        "name": "text",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "CASE\n    WHEN ARRAY_LENGTH(REGEXP_EXTRACT_ALL(COALESCE(text,''), r'\\b[\\p{L}\\p{N}]+\\b')) < 12 THEN 'short'\n    WHEN ARRAY_LENGTH(REGEXP_EXTRACT_ALL(COALESCE(text,''), r'\\b[\\p{L}\\p{N}]+\\b')) <= 24 THEN 'med'\n    ELSE 'long'\n  END"
+  },
+  {
+    "id": "msg_row_key",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-02 19:56:54",
+    "modified": "2025-09-02 19:56:54",
+    "arguments": [
+      {
+        "name": "message_id",
+        "argumentKind": "ANY_TYPE"
+      },
+      {
+        "name": "source_file",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      },
+      {
+        "name": "sending_time",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      },
+      {
+        "name": "message",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "COALESCE(\n    NULLIF(SAFE_CAST(message_id AS STRING), ''),\n    TO_HEX(SHA256(CONCAT(\n      COALESCE(source_file, ''), '|',\n      -- Use parsed UTC time if available; else raw string\n      COALESCE(\n        FORMAT_TIMESTAMP('%F %H:%M:%S', `of-scheduler-proj.util.parse_ts`(sending_time), 'UTC'),\n        COALESCE(sending_time, '')\n      ), '|',\n      LOWER(`of-scheduler-proj.util.clean_html`(COALESCE(message, '')))\n    )))\n  )"
+  },
+  {
+    "id": "norm_username",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-10 03:52:38",
+    "modified": "2025-09-10 03:52:38",
+    "arguments": [
+      {
+        "name": "username",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "LOWER(\n    REGEXP_REPLACE(\n      REGEXP_REPLACE(\n        REGEXP_REPLACE(TRIM(COALESCE(username, '')), r'[^a-zA-Z0-9_]', ''),\n        r'_+', '_'\n      ),\n      r'^_|_$', ''\n    )\n  )"
+  },
+  {
+    "id": "parse_date_et",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-02 23:26:40",
+    "modified": "2025-09-02 23:26:40",
+    "arguments": [
+      {
+        "name": "s",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "DATE"
+    },
+    "definition": "COALESCE(\n    -- plain dates\n    SAFE.PARSE_DATE('%Y-%m-%d', s),\n    SAFE.PARSE_DATE('%m/%d/%Y', s),\n    SAFE.PARSE_DATE('%m/%d/%y',  s),\n    SAFE.PARSE_DATE('%Y/%m/%d', s),\n\n    -- timestamp-ish strings in ET (24h + 12h with AM/PM)\n    DATE(SAFE.PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S', s, 'America/New_York')),\n    DATE(SAFE.PARSE_TIMESTAMP('%m/%d/%Y %H:%M:%S', s, 'America/New_York')),\n    DATE(SAFE.PARSE_TIMESTAMP('%m/%d/%Y %H:%M',    s, 'America/New_York')),\n    DATE(SAFE.PARSE_TIMESTAMP('%m/%d/%Y %I:%M:%S %p', s, 'America/New_York')),\n    DATE(SAFE.PARSE_TIMESTAMP('%m/%d/%Y %I:%M %p',    s, 'America/New_York')),\n\n    -- if the column is already typed as DATE/TIMESTAMP but came through as string\n    SAFE_CAST(s AS DATE),\n    DATE(SAFE_CAST(s AS TIMESTAMP))\n  )"
+  },
+  {
+    "id": "parse_price",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-02 20:07:25",
+    "modified": "2025-09-02 20:07:25",
+    "arguments": [
+      {
+        "name": "s",
+        "argumentKind": "ANY_TYPE"
+      }
+    ],
+    "return_type": {
+      "typeKind": "NUMERIC"
+    },
+    "definition": "COALESCE(\n    SAFE_CAST(s AS NUMERIC),  -- handles FLOAT64/NUMERIC directly\n    CASE\n      WHEN REGEXP_CONTAINS(COALESCE(SAFE_CAST(s AS STRING), ''), r'^\\s*$') THEN NULL\n      ELSE SAFE_CAST(REGEXP_REPLACE(SAFE_CAST(s AS STRING), r'[^0-9.\\-]', '') AS NUMERIC)\n    END\n  )"
+  },
+  {
+    "id": "parse_ts",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-02 19:46:50",
+    "modified": "2025-09-02 19:46:50",
+    "arguments": [
+      {
+        "name": "s",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "TIMESTAMP"
+    },
+    "definition": "COALESCE(\n    -- \"Sep 2, 2025 at 3:04 PM\"\n    SAFE.PARSE_TIMESTAMP('%b %e, %Y at %I:%M %p', REGEXP_REPLACE(COALESCE(s, ''), r'\\s+', ' ')),\n    SAFE.PARSE_TIMESTAMP('%b %d, %Y at %I:%M %p', REGEXP_REPLACE(COALESCE(s, ''), r'\\s+', ' ')),\n    -- \"2025-09-02 15:04[:SS]\"\n    SAFE.PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S', REGEXP_REPLACE(COALESCE(s, ''), r'\\s+', ' ')),\n    SAFE.PARSE_TIMESTAMP('%Y-%m-%d %H:%M',     REGEXP_REPLACE(COALESCE(s, ''), r'\\s+', ' ')),\n    -- \"09/02/2025 3:04 PM\" or 24h with seconds\n    SAFE.PARSE_TIMESTAMP('%m/%d/%Y %I:%M %p',  REGEXP_REPLACE(COALESCE(s, ''), r'\\s+', ' ')),\n    SAFE.PARSE_TIMESTAMP('%m/%d/%Y %H:%M:%S',  REGEXP_REPLACE(COALESCE(s, ''), r'\\s+', ' ')),\n    -- ISO-8601 (with Z or +/-hh:mm and optional fractional seconds)\n    SAFE.PARSE_TIMESTAMP('%Y-%m-%dT%H:%M:%S%Ez',    REGEXP_REPLACE(COALESCE(s, ''), r'\\s+', ' ')),\n    SAFE.PARSE_TIMESTAMP('%Y-%m-%dT%H:%M:%E*S%Ez',  REGEXP_REPLACE(COALESCE(s, ''), r'\\s+', ' '))\n  )"
+  },
+  {
+    "id": "stable_hash",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-09 22:45:53",
+    "modified": "2025-09-09 22:45:53",
+    "arguments": [
+      {
+        "name": "s",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "TO_HEX(SHA256(COALESCE(s,'')))"
+  },
+  {
+    "id": "strip_html",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-09 22:45:44",
+    "modified": "2025-09-09 22:45:44",
+    "arguments": [
+      {
+        "name": "s",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "REGEXP_REPLACE(COALESCE(s,''), r'<[^>]*>', ' ')"
+  },
+  {
+    "id": "strip_page_type",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-05 04:03:34",
+    "modified": "2025-09-05 04:03:34",
+    "arguments": [
+      {
+        "name": "s",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": {
+      "typeKind": "STRING"
+    },
+    "definition": "TRIM(REGEXP_REPLACE(LOWER(s), r'(?i)\\b(free|paid|vip)\\b', ''))"
+  },
+  {
+    "id": "word_count",
+    "type": "SCALAR_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-06 19:27:04",
+    "modified": "2025-09-06 19:27:04",
+    "arguments": [
+      {
+        "name": "s",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      }
+    ],
+    "return_type": null,
+    "definition": "ARRAY_LENGTH(SPLIT(REGEXP_REPLACE(COALESCE(s,''), r'[^A-Za-z0-9]+',' ')))"
+  }
+]

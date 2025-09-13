@@ -1,0 +1,25 @@
+{
+  "id": "archive",
+  "description": "Backups before drop",
+  "location": "US",
+  "created": "2025-09-03 02:16:54",
+  "modified": "2025-09-03 02:16:54",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

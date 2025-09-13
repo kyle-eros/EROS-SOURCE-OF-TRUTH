@@ -1,0 +1,122 @@
+[
+  {
+    "name": "core_message_facts_hourly",
+    "schedule": "every 1 hours",
+    "next_run": "2025-09-13T23:00:00Z",
+    "location": null,
+    "query": "SELECT * FROM `of-scheduler-proj.layer_04_semantic.v_message_facts_by_page`",
+    "destination_table": "message_facts_by_page_365d",
+    "created": "2025-09-13T03:55:30.876320Z",
+    "enabled": false
+  },
+  {
+    "name": "personalization weights",
+    "schedule": "every 12 hours",
+    "next_run": null,
+    "location": null,
+    "query": "CALL `of-scheduler-proj.ops_config.sp_update_personalization_weights`();",
+    "destination_table": "N/A",
+    "created": "2025-09-13T08:44:02.298136Z",
+    "enabled": false
+  },
+  {
+    "name": "core_caption_bank_autoupdate_12h",
+    "schedule": "every 12 hours",
+    "next_run": "2025-09-14T07:30:00Z",
+    "location": null,
+    "query": "SELECT\n  caption_id,\n  caption_hash,\n  caption_text,\n  caption_type AS caption_category,  \n  explicitness,\n  theme_tags,                         \n  username_std                        \nFROM `of-scheduler-proj.layer_04_semantic.v_caption_dim`;\n",
+    "destination_table": "caption_bank_latest",
+    "created": "2025-09-13T04:13:30.371127Z",
+    "enabled": false
+  },
+  {
+    "name": "Daily QA: gap rules into mart.weekly_template_qc_violations",
+    "schedule": "every day 12:10",
+    "next_run": "2025-09-14T12:10:00Z",
+    "location": null,
+    "query": "INSERT INTO `of-scheduler-proj.mart.weekly_template_qc_violations`\n(run_at, issue_type, username_std, date_local, prev_h, curr_h, next_h, gap_h, min_h, max_h)\nWITH plan AS (\n  SELECT username_std, date_local, CAST(hod_local AS INT64) AS h\n  FROM `of-scheduler-proj.mart.weekly_template_7d_latest`\n),\nwin AS (\n  SELECT\n    username_std,\n    CAST(COALESCE(MIN(min_hod), 0)  AS INT64) AS min_h,\n    CAST(COALESCE(MAX(max_hod), 23) AS INT64) AS max_h\n  FROM `of-scheduler-proj.layer_04_semantic.v_page_dim`\n  WHERE COALESCE(LOWER(CAST(is_active AS STRING)) IN (true,t,1,yes,y), TRUE)\n  GROUP BY username_std\n),\nordered AS (\n  SELECT\n    p.username_std,\n    p.date_local,\n    p.h,\n    w.min_h,\n    w.max_h,\n    LAG(p.h)  OVER (PARTITION BY p.username_std, p.date_local ORDER BY p.h) AS prev_h,\n    LEAD(p.h) OVER (PARTITION BY p.username_std, p.date_local ORDER BY p.h) AS next_h\n  FROM plan p\n  JOIN win  w USING (username_std)\n),\nviolations AS (\n  SELECT MIN_GAP_LT_2H AS issue_type, username_std, date_local,\n         prev_h, h AS curr_h, next_h, (h - prev_h) AS gap_h, min_h, max_h\n  FROM ordered\n  WHERE prev_h IS NOT NULL AND (h - prev_h) < 2\n  UNION ALL\n  SELECT MAX_GAP_GT_6H_IN_WINDOW, username_std, date_local,\n         NULL AS prev_h, h AS curr_h, next_h, (next_h - h) AS gap_h, min_h, max_h\n  FROM ordered\n  WHERE next_h IS NOT NULL AND (next_h - h) > 6 AND h BETWEEN min_h AND max_h\n)\nSELECT CURRENT_TIMESTAMP(), issue_type, username_std, date_local,\n       prev_h, curr_h, next_h, gap_h, min_h, max_h\nFROM violations;\n",
+    "destination_table": "N/A",
+    "created": "2025-09-13T08:43:44.870003Z",
+    "enabled": false
+  },
+  {
+    "name": "PROD · Learner · Update Page Knobs (daily 06:30am/pm)",
+    "schedule": "every 12 hours",
+    "next_run": null,
+    "location": null,
+    "query": "CALL `of-scheduler-proj.layer_04_semantic.sp_update_page_knobs_learned_v1`();",
+    "destination_table": "N/A",
+    "created": "2025-09-13T08:44:09.305236Z",
+    "enabled": false
+  },
+  {
+    "name": "Expire probation & set tier",
+    "schedule": "every 12 hours",
+    "next_run": "2025-09-13T23:55:00Z",
+    "location": null,
+    "query": "CALL `of-scheduler-proj.layer_04_semantic.sp_onboarding_expire_and_tier_v1`();",
+    "destination_table": "N/A",
+    "created": "2025-09-13T08:44:15.796715Z",
+    "enabled": false
+  },
+  {
+    "name": "Refresh weekly_template_7d_latest (v7)",
+    "schedule": "every mon 12:00",
+    "next_run": "2025-09-15T12:00:00Z",
+    "location": null,
+    "query": "CREATE OR REPLACE TABLE `of-scheduler-proj.mart.weekly_template_7d_latest`\nPARTITION BY date_local\nCLUSTER BY username_std, slot_rank AS\nSELECT\n  username_std, scheduler_name, tz, date_local, slot_rank,\n  hod_local, price_usd, planned_local_datetime, scheduled_datetime_utc\nFROM `of-scheduler-proj.mart.v_weekly_template_7d_v7`;\n",
+    "destination_table": "N/A",
+    "created": "2025-09-03T23:15:35.976984Z",
+    "enabled": false
+  },
+  {
+    "name": "Weekly snapshot to mart.weekly_plan",
+    "schedule": "every mon 12:05",
+    "next_run": "2025-09-15T12:05:00Z",
+    "location": null,
+    "query": "INSERT INTO `of-scheduler-proj.mart.weekly_plan`\n(week_start, username_std, scheduler_name, tz, date_local, slot_rank, hod_local, price_usd,\n planned_local_datetime, scheduled_datetime_utc, created_at)\nSELECT\n  DATE_TRUNC(CURRENT_DATE(tz), WEEK(MONDAY)) AS week_start,\n  t.username_std, t.scheduler_name, t.tz, t.date_local, t.slot_rank, t.hod_local, t.price_usd,\n  t.planned_local_datetime, t.scheduled_datetime_utc, CURRENT_TIMESTAMP()\nFROM `of-scheduler-proj.mart.weekly_template_7d_latest` t\nWHERE NOT EXISTS (\n  SELECT 1\n  FROM `of-scheduler-proj.mart.weekly_plan` w\n  WHERE w.week_start   = DATE_TRUNC(CURRENT_DATE(t.tz), WEEK(MONDAY))\n    AND w.username_std = t.username_std\n    AND w.date_local   = t.date_local\n    AND w.slot_rank    = t.slot_rank\n);\n",
+    "destination_table": "N/A",
+    "created": "2025-09-03T23:17:08.515398Z",
+    "enabled": false
+  },
+  {
+    "name": "Onboarding: sp_onboard_new_pages_v1 (hourly)",
+    "schedule": "every 1 hours",
+    "next_run": null,
+    "location": null,
+    "query": "CALL `of-scheduler-proj.layer_04_semantic.sp_onboard_new_pages_v1`();",
+    "destination_table": "N/A",
+    "created": "2025-09-13T08:44:22.426085Z",
+    "enabled": false
+  },
+  {
+    "name": "weekly refresh automatic",
+    "schedule": "every 12 hours",
+    "next_run": "2025-09-14T01:15:00Z",
+    "location": null,
+    "query": "CREATE OR REPLACE TABLE `of-scheduler-proj.mart.weekly_template_7d_latest`\nPARTITION BY date_local\nCLUSTER BY username_std, slot_rank AS\nSELECT\n  * REPLACE ( CAST(price_usd AS NUMERIC) AS price_usd )\nFROM `of-scheduler-proj.mart.v_weekly_template_7d_v7`;",
+    "destination_table": "N/A",
+    "created": "2025-09-07T07:37:18.638034Z",
+    "enabled": false
+  },
+  {
+    "name": "Onboard new pages",
+    "schedule": "every 12 hours",
+    "next_run": null,
+    "location": null,
+    "query": "CALL `of-scheduler-proj.layer_04_semantic.sp_onboard_new_pages_v1`();",
+    "destination_table": "N/A",
+    "created": "2025-09-13T08:44:28.843181Z",
+    "enabled": false
+  },
+  {
+    "name": "Caption Rank — Next 24h (diversity-aware staged build v2)",
+    "schedule": "every 1 hours",
+    "next_run": "2025-09-13T23:16:00Z",
+    "location": null,
+    "query": "-- ##############################\n-- Caption Rank — Next 24h (diversity-aware staged build v2)\n-- ##############################\n\n-- ---- Parameters (settings with safe defaults)\nDECLARE nu_buy        FLOAT64 DEFAULT 200.0;\nDECLARE w_style       FLOAT64 DEFAULT 0.10;\nDECLARE ucb_sigma_min FLOAT64 DEFAULT 0.15;\nDECLARE ucb_sigma_max FLOAT64 DEFAULT 0.60;\nDECLARE ucb_cap_mult  FLOAT64 DEFAULT 2.0;\nDECLARE cross_block_h INT64   DEFAULT 6;\nDECLARE pen_same_day  FLOAT64 DEFAULT 1.0;\nDECLARE pen_cross_pg  FLOAT64 DEFAULT 0.75;\nDECLARE enforce_ban   BOOL    DEFAULT FALSE;\n\n-- ---- Settings (moved from core → ops_config)\nSET nu_buy        = COALESCE((SELECT CAST(setting_val AS FLOAT64) FROM `of-scheduler-proj.ops_config.settings_modeling` WHERE setting_key='prior_nu_buy'               LIMIT 1), nu_buy);\nSET w_style       = COALESCE((SELECT CAST(setting_val AS FLOAT64) FROM `of-scheduler-proj.ops_config.settings_modeling` WHERE setting_key='w_style_lift'              LIMIT 1), w_style);\nSET ucb_sigma_min = COALESCE((SELECT CAST(setting_val AS FLOAT64) FROM `of-scheduler-proj.ops_config.settings_modeling` WHERE setting_key='ucb_sigma_min'             LIMIT 1), ucb_sigma_min);\nSET ucb_sigma_max = COALESCE((SELECT CAST(setting_val AS FLOAT64) FROM `of-scheduler-proj.ops_config.settings_modeling` WHERE setting_key='ucb_sigma_max'             LIMIT 1), ucb_sigma_max);\nSET ucb_cap_mult  = COALESCE((SELECT CAST(setting_val AS FLOAT64) FROM `of-scheduler-proj.ops_config.settings_modeling` WHERE setting_key='ucb_bonus_cap_mult'         LIMIT 1), ucb_cap_mult);\nSET cross_block_h = COALESCE((SELECT CAST(setting_val AS INT64)   FROM `of-scheduler-proj.ops_config.settings_modeling` WHERE setting_key='cross_page_block_hours'    LIMIT 1), cross_block_h);\nSET pen_same_day  = COALESCE((SELECT CAST(setting_val AS FLOAT64) FROM `of-scheduler-proj.ops_config.settings_modeling` WHERE setting_key='penalty_same_day_mult'     LIMIT 1), pen_same_day);\nSET pen_cross_pg  = COALESCE((SELECT CAST(setting_val AS FLOAT64) FROM `of-scheduler-proj.ops_config.settings_modeling` WHERE setting_key='penalty_cross_page_mult'   LIMIT 1), pen_cross_pg);\nSET enforce_ban   = COALESCE((SELECT LOWER(setting_val) IN ('true','1','yes') FROM `of-scheduler-proj.ops_config.settings_modeling` WHERE setting_key='diversity_enforce_ban' LIMIT 1), enforce_ban);\n\n-- 0) next-24 slots\nCREATE OR REPLACE TEMP TABLE tmp_slots AS\nSELECT username_page, slot_dt_local, dow, hod, reco_dm_type, reco_price_usd\nFROM `of-scheduler-proj.mart.v_slot_recommendations_next24_v3`;\n\n-- 1) candidate pool (pages in play only)\nCREATE OR REPLACE TEMP TABLE tmp_cand0 AS\nSELECT\n  CAST(c.username_page AS STRING)         AS username_page,\n  CAST(c.caption_id   AS STRING)          AS caption_id,\n  CAST(c.caption_hash AS STRING)          AS caption_hash,\n  CAST(c.caption_text AS STRING)          AS caption_text,\n  CAST(c.len_bin      AS STRING)          AS len_bin,\n  CAST(c.emoji_bin    AS STRING)          AS emoji_bin,\n  CAST(c.has_cta      AS BOOL)            AS has_cta,\n  CAST(c.has_urgency  AS BOOL)            AS has_urgency,\n  CAST(c.ends_with_question AS BOOL)      AS ends_with_question,\n  CAST(c.last_used_ts AS TIMESTAMP)       AS last_used_ts,\n  CAST(c.is_cooldown_ok AS BOOL)          AS is_cooldown_ok\nFROM `of-scheduler-proj.mart.v_caption_candidate_pool_v3` c\nJOIN (SELECT DISTINCT username_page FROM tmp_slots) p USING (username_page);\n\n-- 2) page-fallback if page has zero candidates\nCREATE OR REPLACE TEMP TABLE tmp_pages_without AS\nSELECT p.username_page\nFROM (SELECT DISTINCT username_page FROM tmp_slots) p\nLEFT JOIN (SELECT DISTINCT username_page FROM tmp_cand0) c USING (username_page)\nWHERE c.username_page IS NULL;\n\nCREATE OR REPLACE TEMP TABLE tmp_fallback_cand AS\nSELECT\n  username_page,\n  'fallback_default' AS caption_id,\n  TO_HEX(SHA256(CONCAT(username_page,'|fallback_default'))) AS caption_hash,\n  CAST(NULL AS STRING) AS caption_text,\n  'short'  AS len_bin,\n  'no_emoji' AS emoji_bin,\n  FALSE AS has_cta, FALSE AS has_urgency, FALSE AS ends_with_question,\n  CAST(NULL AS TIMESTAMP) AS last_used_ts,\n  TRUE AS is_cooldown_ok\nFROM tmp_pages_without;\n\nCREATE OR REPLACE TEMP TABLE tmp_cand AS\nSELECT * FROM tmp_cand0\nUNION ALL\nSELECT * FROM tmp_fallback_cand;\n\n-- 3) slot × candidate + cooldown coverage\nCREATE OR REPLACE TEMP TABLE tmp_slot_cand AS\nSELECT\n  s.username_page, s.slot_dt_local, s.dow, s.hod, s.reco_dm_type,\n  GREATEST(s.reco_price_usd,0.0) AS price,\n  c.caption_id, c.caption_hash, c.caption_text,\n  c.len_bin, c.emoji_bin, c.has_cta, c.has_urgency, c.ends_with_question,\n  c.is_cooldown_ok,\n  SUM(CASE WHEN c.is_cooldown_ok THEN 1 ELSE 0 END)\n    OVER (PARTITION BY s.username_page, s.slot_dt_local) AS ok_cnt_in_slot,\n  COALESCE(TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), c.last_used_ts, DAY), 999999) AS days_since_last_use\nFROM tmp_slots s\nJOIN tmp_cand  c USING (username_page);\n\n-- 4) style score (smoothed/clamped lift)\nCREATE OR REPLACE TEMP TABLE tmp_styled AS\nSELECT\n  b.*,\n  w_style * COALESCE(sl.lift_vs_slot_smooth_clamped, 0.0) AS style_score\nFROM tmp_slot_cand b\nLEFT JOIN `of-scheduler-proj.mart.v_dm_style_lift_28d_v3` sl\n  ON sl.username_page=b.username_page AND sl.dow=b.dow AND sl.hod=b.hod\n AND sl.len_bin=b.len_bin AND sl.emoji_bin=b.emoji_bin\n AND sl.has_cta=b.has_cta AND sl.has_urgency=b.has_urgency\n AND sl.ends_with_question=b.ends_with_question;\n\n-- 5) EB p-buy for caption on page\nCREATE OR REPLACE TEMP TABLE tmp_eb AS\nSELECT\n  t.*,\n  COALESCE(st.decayed_purchases, 0.0) AS x,\n  COALESCE(st.decayed_sent,      0.0) AS n,\n  COALESCE(pr.mu_buy_sent, 0.08) AS mu_page,\n  SAFE_DIVIDE(COALESCE(st.decayed_purchases,0.0) + nu_buy * COALESCE(pr.mu_buy_sent,0.08),\n              COALESCE(st.decayed_sent,0.0)      + nu_buy) AS p_buy_eb\nFROM tmp_styled t\nLEFT JOIN `of-scheduler-proj.mart.v_caption_decayed_stats_60d_v3` st USING (username_page, caption_hash)\nLEFT JOIN `of-scheduler-proj.mart.v_page_priors_l90_v3`        pr USING (username_page);\n\n-- 6) recent volume for adaptive exploration\nCREATE OR REPLACE TEMP TABLE tmp_slot_vol AS\nSELECT f.username_page, f.dow, f.hod, SUM(f.sent) AS sent_28d\nFROM `of-scheduler-proj.mart.fn_dm_send_facts`(28) f\nJOIN (SELECT DISTINCT username_page FROM tmp_slots) p USING (username_page)\nGROUP BY 1,2,3;\n\nCREATE OR REPLACE TEMP TABLE tmp_page_vol AS\nSELECT s.username_page, SUM(s.decayed_sent) AS decayed_sent_60d\nFROM `of-scheduler-proj.mart.v_caption_decayed_stats_60d_v3` s\nJOIN (SELECT DISTINCT username_page FROM tmp_slots) p USING (username_page)\nGROUP BY 1;\n\n-- 7) adaptive UCB (raw), prelim score (before diversity), cooldown fallback penalty\nCREATE OR REPLACE TEMP TABLE tmp_prelim AS\nSELECT\n  e.*,\n  GREATEST(e.n + nu_buy, 1.0) AS n_eff,\n  COALESCE(sv.sent_28d, 0.0)         AS sent_28d,\n  COALESCE(pv.decayed_sent_60d, 0.0) AS decayed_sent_60d,\n  (ucb_sigma_min + (ucb_sigma_max - ucb_sigma_min) * (\n     0.5 * (1.0 / (1.0 + LOG10(1.0 + COALESCE(sv.sent_28d,0.0)))) +\n     0.5 * (1.0 / (1.0 + LOG10(1.0 + COALESCE(pv.decayed_sent_60d,0.0))))\n   )) AS sigma_adapted,\n  (e.price * e.p_buy_eb) AS rps_eb_price,\n  CASE WHEN e.price > 0 THEN\n    (ucb_sigma_min + (ucb_sigma_max - ucb_sigma_min) * (\n       0.5 * (1.0 / (1.0 + LOG10(1.0 + COALESCE(sv.sent_28d,0.0)))) +\n       0.5 * (1.0 / (1.0 + LOG10(1.0 + COALESCE(pv.decayed_sent_60d,0.0))))\n     )) * e.price * SQRT( GREATEST(e.p_buy_eb*(1.0-e.p_buy_eb), 0.0) / GREATEST(e.n + nu_buy, 1.0) )\n  ELSE 0.0 END AS se_bonus_raw,\n  CASE WHEN e.is_cooldown_ok OR e.ok_cnt_in_slot > 0 THEN 0.0 ELSE -0.000001 * e.days_since_last_use END AS cooldown_penalty,\n  ( (e.price * e.p_buy_eb)\n    + LEAST( CASE WHEN e.price>0 THEN (ucb_sigma_min + (ucb_sigma_max - ucb_sigma_min) * (\n              0.5*(1.0/(1.0+LOG10(1.0+COALESCE(sv.sent_28d,0.0)))) +\n              0.5*(1.0/(1.0+LOG10(1.0+COALESCE(pv.decayed_sent_60d,0.0))))\n            )) * e.price * SQRT( GREATEST(e.p_buy_eb*(1.0-e.p_buy_eb),0.0) / GREATEST(e.n + nu_buy,1.0) )\n            ELSE 0.0 END,\n            ucb_cap_mult * (e.price * e.p_buy_eb) )\n    + COALESCE(e.style_score,0.0)\n    + CASE WHEN e.is_cooldown_ok OR e.ok_cnt_in_slot > 0 THEN 0.0 ELSE -0.000001 * e.days_since_last_use END\n  ) AS prelim_score\nFROM tmp_eb e\nLEFT JOIN tmp_slot_vol sv USING (username_page, dow, hod)\nLEFT JOIN tmp_page_vol pv USING (username_page);\n\n-- 8a) per-page, same-day rank of a caption (1 = best; duplicates >1)\nCREATE OR REPLACE TEMP TABLE tmp_same_day AS\nSELECT\n  username_page,\n  DATE(slot_dt_local) AS d,\n  caption_hash,\n  ROW_NUMBER() OVER (\n    PARTITION BY username_page, DATE(slot_dt_local), caption_hash\n    ORDER BY prelim_score DESC, caption_id\n  ) AS same_day_rank\nFROM tmp_prelim;\n\n-- 8b) provisional top-1 per slot\nCREATE OR REPLACE TEMP TABLE tmp_top1 AS\nSELECT username_page, slot_dt_local, caption_hash\nFROM (\n  SELECT\n    username_page, slot_dt_local, caption_hash,\n    ROW_NUMBER() OVER (\n      PARTITION BY username_page, slot_dt_local\n      ORDER BY prelim_score DESC, caption_id\n    ) AS rn\n  FROM tmp_prelim\n)\nWHERE rn = 1;\n\n-- 8c) cross-page conflict: same caption is top-1 elsewhere within ±H hours\nCREATE OR REPLACE TEMP TABLE tmp_conflict AS\nSELECT DISTINCT\n  p.username_page,\n  p.slot_dt_local,\n  p.caption_hash,\n  1 AS has_conflict\nFROM tmp_prelim p\nJOIN tmp_top1    t\n  ON t.caption_hash = p.caption_hash\n AND t.username_page <> p.username_page\n AND ABS(TIMESTAMP_DIFF(t.slot_dt_local, p.slot_dt_local, HOUR)) <= cross_block_h;\n\n-- 9) final score with penalties / bans and write FINAL table\nCREATE OR REPLACE TABLE `of-scheduler-proj.mart.caption_rank_next24_v3_tbl`\nPARTITION BY DATE(slot_dt_local)\nCLUSTER BY username_page, dow, hod AS\nWITH flags AS (\n  SELECT\n    p.*,\n    sd.same_day_rank,\n    COALESCE(cf.has_conflict, 0) AS cross_conflict\n  FROM tmp_prelim p\n  LEFT JOIN `tmp_same_day` sd\n    ON sd.username_page=p.username_page\n   AND sd.d=DATE(p.slot_dt_local)\n   AND sd.caption_hash=p.caption_hash\n  LEFT JOIN `tmp_conflict` cf\n    ON cf.username_page=p.username_page\n   AND cf.slot_dt_local=p.slot_dt_local\n   AND cf.caption_hash=p.caption_hash\n),\nscored AS (\n  SELECT\n    f.*,\n    LEAST(f.se_bonus_raw, ucb_cap_mult * f.rps_eb_price) AS se_bonus,\n    -- penalty mode: subtract scaled penalties; ban mode: filtered in WHERE\n    f.prelim_score\n      - CASE WHEN NOT enforce_ban AND f.same_day_rank>1\n             THEN pen_same_day * GREATEST(f.rps_eb_price, 0.0005) ELSE 0 END\n      - CASE WHEN NOT enforce_ban AND f.cross_conflict=1\n             THEN pen_cross_pg * GREATEST(f.rps_eb_price, 0.0005) ELSE 0 END\n      AS score_final\n  FROM flags f\n)\nSELECT\n  username_page,\n  slot_dt_local,\n  dow,\n  hod,\n  caption_id,\n  caption_hash,                 -- useful for joins/debug\n  caption_text,\n  p_buy_eb,\n  rps_eb_price,\n  se_bonus,\n  style_score,\n  is_cooldown_ok,\n  score_final,\n  ROW_NUMBER() OVER (\n    PARTITION BY username_page, slot_dt_local\n    ORDER BY score_final DESC, caption_id\n  ) AS rn\nFROM scored\nWHERE\n  (NOT enforce_ban OR same_day_rank = 1)\n  AND (NOT enforce_ban OR cross_conflict = 0);\n",
+    "destination_table": "N/A",
+    "created": "2025-09-13T05:43:08.461679Z",
+    "enabled": false
+  }
+]

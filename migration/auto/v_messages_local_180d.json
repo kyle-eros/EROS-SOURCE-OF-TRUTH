@@ -1,0 +1,101 @@
+{
+  "creationTime": "1756877575051",
+  "etag": "Q3/wpD+s9roGsiZPdzGKJg==",
+  "id": "of-scheduler-proj:mart.v_messages_local_180d",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1756877575051",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "row_key_v1",
+        "type": "STRING"
+      },
+      {
+        "name": "message_id",
+        "type": "STRING"
+      },
+      {
+        "name": "username_raw",
+        "type": "STRING"
+      },
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "sender",
+        "type": "STRING"
+      },
+      {
+        "name": "sending_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "sending_date",
+        "type": "DATE"
+      },
+      {
+        "name": "price_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "earnings_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "source_file",
+        "type": "STRING"
+      },
+      {
+        "name": "loaded_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "dt_local",
+        "type": "DATETIME"
+      },
+      {
+        "name": "hod_local",
+        "type": "INTEGER"
+      },
+      {
+        "name": "dow_local",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_messages_local_180d",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_messages_local_180d"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "SELECT\n  m.*,\n  DATETIME(m.sending_ts, p.tz) AS dt_local,\n  EXTRACT(HOUR FROM DATETIME(m.sending_ts, p.tz)) AS hod_local,\n  MOD(EXTRACT(DAYOFWEEK FROM DATETIME(m.sending_ts, p.tz)) + 5, 7) AS dow_local  -- Mon=0..Sun=6\nFROM `of-scheduler-proj.core.message_facts` m\nJOIN `of-scheduler-proj.core.page_dim` p USING (username_std)\nWHERE m.sending_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 180 DAY)",
+    "useLegacySql": false
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "creationTime": "1756936297013",
+  "etag": "sdedHPPsZ0egQEQXRIrMvQ==",
+  "id": "of-scheduler-proj:mart.v_weekly_feasibility_alerts",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1756936297013",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "date_local",
+        "type": "DATE"
+      },
+      {
+        "name": "dow",
+        "type": "INTEGER"
+      },
+      {
+        "name": "quota",
+        "type": "INTEGER"
+      },
+      {
+        "name": "min_h",
+        "type": "INTEGER"
+      },
+      {
+        "name": "max_h",
+        "type": "INTEGER"
+      },
+      {
+        "name": "window_width",
+        "type": "INTEGER"
+      },
+      {
+        "name": "width_needed_2h",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_weekly_feasibility_alerts",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_weekly_feasibility_alerts"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH days_to_check AS (           -- the page-days we actually plan\n  SELECT DISTINCT username_std, date_local\n  FROM `of-scheduler-proj.mart.weekly_template_7d_latest`\n),\n\n-- clamp + swap windows once, using the same rules as the planner\npd0 AS (\n  SELECT\n    username_std,\n    CASE WHEN min_hod IS NULL AND max_hod IS NULL THEN 0\n         WHEN min_hod IS NULL THEN 0\n         ELSE GREATEST(0, LEAST(23, CAST(min_hod AS INT64))) END AS min0,\n    CASE WHEN min_hod IS NULL AND max_hod IS NULL THEN 23\n         WHEN max_hod IS NULL THEN 23\n         ELSE GREATEST(0, LEAST(23, CAST(max_hod AS INT64))) END AS max0\n  FROM `of-scheduler-proj.core.page_dim`\n  WHERE COALESCE(LOWER(CAST(is_active AS STRING)) IN ('true','t','1','yes','y'), TRUE)\n),\npd AS (\n  SELECT\n    username_std,\n    CASE WHEN min0 IS NOT NULL AND max0 IS NOT NULL AND min0 > max0 THEN max0 ELSE min0 END AS min_hod_eff,\n    CASE WHEN min0 IS NOT NULL AND max0 IS NOT NULL AND min0 > max0 THEN min0 ELSE max0 END AS max_hod_eff\n  FROM pd0\n),\n\n-- policy quota by DOW (0=Mon..6=Sun like the planner)\npolicy AS (\n  SELECT username_std, dow, ppv_quota\n  FROM `of-scheduler-proj.mart.v_daily_quota_policy_v3`\n),\n\nbase AS (\n  SELECT\n    d.username_std,\n    d.date_local,\n    p.min_hod_eff AS min_h,\n    p.max_hod_eff AS max_h,\n    q.ppv_quota   AS quota,\n    MOD(EXTRACT(DAYOFWEEK FROM d.date_local) + 5, 7) AS dow\n  FROM days_to_check d\n  JOIN pd p USING (username_std)\n  LEFT JOIN policy q\n    ON q.username_std = d.username_std\n   AND q.dow         = MOD(EXTRACT(DAYOFWEEK FROM d.date_local) + 5, 7)\n),\n\ncalc AS (\n  SELECT\n    username_std,\n    date_local,\n    dow,\n    quota,\n    min_h,\n    max_h,\n    (max_h - min_h) AS window_width,\n    GREATEST(0, 2 * (COALESCE(quota, 0) - 1)) AS width_needed_2h\n  FROM base\n)\n\nSELECT *\nFROM calc\nWHERE quota IS NOT NULL\n  AND window_width < width_needed_2h   -- impossible to satisfy \u22652h with this quota/window\nORDER BY username_std, date_local",
+    "useLegacySql": false
+  }
+}

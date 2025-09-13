@@ -1,0 +1,9 @@
+{
+  "dataset_id": "backup_20250911_pre_migration",
+  "counts": {
+    "tables": 5,
+    "views": 0,
+    "materialized_views": 0,
+    "routines": 0
+  }
+}

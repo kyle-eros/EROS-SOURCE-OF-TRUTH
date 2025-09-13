@@ -1,0 +1,81 @@
+[
+  {
+    "id": "schedule_recommendations",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 09:55:11",
+    "modified": "2025-09-11 09:55:11",
+    "size_bytes": 247540,
+    "num_rows": 943,
+    "schema": [
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "creator_username",
+        "type": "STRING"
+      },
+      {
+        "name": "creator_page_type",
+        "type": "STRING"
+      },
+      {
+        "name": "schedule_date",
+        "type": "DATE"
+      },
+      {
+        "name": "schedule_hour",
+        "type": "INTEGER"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_preview",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_category",
+        "type": "STRING"
+      },
+      {
+        "name": "recommendation_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "ml_score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "predicted_rps",
+        "type": "FLOAT"
+      },
+      {
+        "name": "confidence_score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "days_since_last_send",
+        "type": "FLOAT"
+      },
+      {
+        "name": "recommendation_tier",
+        "type": "STRING"
+      },
+      {
+        "name": "is_exploration_pick",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "model_version",
+        "type": "STRING"
+      },
+      {
+        "name": "generated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  }
+]

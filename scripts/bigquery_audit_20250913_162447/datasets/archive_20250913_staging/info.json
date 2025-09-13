@@ -1,0 +1,25 @@
+{
+  "id": "archive_20250913_staging",
+  "description": "",
+  "location": "US",
+  "created": "2025-09-13 04:40:22",
+  "modified": "2025-09-13 04:40:22",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

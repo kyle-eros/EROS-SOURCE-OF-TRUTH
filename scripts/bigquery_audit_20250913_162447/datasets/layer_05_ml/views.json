@@ -1,0 +1,746 @@
+[
+  {
+    "id": "feature_store_ext",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-12 12:13:13",
+    "modified": "2025-09-12 12:13:13",
+    "query": "WITH latest_features AS (\n  SELECT\n    username_page,\n    caption_id,\n    computed_date,\n    performance_features,\n    statistical_features,\n    exploration_features,\n    temporal_features,\n    cooldown_features,\n    composite_scores,\n    RANK() OVER (PARTITION BY username_page, caption_id ORDER BY computed_date DESC) AS rn\n  FROM `of-scheduler-proj.layer_05_ml.feature_store`\n  WHERE computed_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)\n),\nbehavior AS (\n  SELECT * FROM `of-scheduler-proj.layer_04_semantic.v_page_behavior_28d`\n),\nintensity AS (\n  SELECT * FROM `of-scheduler-proj.layer_04_semantic.v_page_intensity_7d`\n)\nSELECT\n  f.username_page,\n  f.caption_id,\n  f.computed_date,\n  f.performance_features,\n  f.statistical_features,\n  f.exploration_features,\n  f.temporal_features,\n  f.cooldown_features,\n  f.composite_scores,\n  COALESCE(b.or_slump_pct * 0.5, 0.0) AS scam_risk_score,\n  b.night_owl_idx,\n  CASE \n    WHEN i.avg_spend_per_txn > 50 THEN 'premium'\n    WHEN i.avg_spend_per_txn > 20 THEN 'standard'\n    ELSE 'budget'\n  END AS price_stance_bucket,\n  0 AS family_recent_uses,  -- Placeholder\n  0 AS cross_page_usage,  -- Placeholder\n  i.renew_on_pct\nFROM latest_features f\nLEFT JOIN behavior b ON f.username_page = b.page_key\nLEFT JOIN intensity i ON f.username_page = i.page_key\nWHERE f.rn = 1",
+    "schema": [
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "computed_date",
+        "type": "DATE"
+      },
+      {
+        "name": "performance_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "rps_30d",
+            "type": "FLOAT"
+          },
+          {
+            "name": "rps_weighted",
+            "type": "FLOAT"
+          },
+          {
+            "name": "rps_smoothed",
+            "type": "FLOAT"
+          },
+          {
+            "name": "purchase_rate_30d",
+            "type": "FLOAT"
+          },
+          {
+            "name": "purchase_rate_smoothed",
+            "type": "FLOAT"
+          },
+          {
+            "name": "revenue_30d",
+            "type": "FLOAT"
+          },
+          {
+            "name": "sends_30d",
+            "type": "INTEGER"
+          },
+          {
+            "name": "trend_slope",
+            "type": "FLOAT"
+          },
+          {
+            "name": "stability_score",
+            "type": "FLOAT"
+          },
+          {
+            "name": "confidence_score",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "statistical_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "median_rps",
+            "type": "FLOAT"
+          },
+          {
+            "name": "p75_rps",
+            "type": "FLOAT"
+          },
+          {
+            "name": "p25_rps",
+            "type": "FLOAT"
+          },
+          {
+            "name": "rps_stddev",
+            "type": "FLOAT"
+          },
+          {
+            "name": "iqr",
+            "type": "FLOAT"
+          },
+          {
+            "name": "coefficient_variation",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "exploration_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "ucb_bonus",
+            "type": "FLOAT"
+          },
+          {
+            "name": "exploration_temperature",
+            "type": "FLOAT"
+          },
+          {
+            "name": "novelty_bonus",
+            "type": "FLOAT"
+          },
+          {
+            "name": "smoothing_weight",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "temporal_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "best_hour",
+            "type": "INTEGER"
+          },
+          {
+            "name": "best_hour_rps",
+            "type": "FLOAT"
+          },
+          {
+            "name": "best_day_of_week",
+            "type": "INTEGER"
+          },
+          {
+            "name": "hours_since_use",
+            "type": "INTEGER"
+          },
+          {
+            "name": "last_used_timestamp",
+            "type": "TIMESTAMP"
+          },
+          {
+            "name": "active_days_30d",
+            "type": "INTEGER"
+          }
+        ]
+      },
+      {
+        "name": "cooldown_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "base_cooldown_hours",
+            "type": "FLOAT"
+          },
+          {
+            "name": "fatigue_score",
+            "type": "FLOAT"
+          },
+          {
+            "name": "is_eligible",
+            "type": "BOOLEAN"
+          }
+        ]
+      },
+      {
+        "name": "composite_scores",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "base_score",
+            "type": "FLOAT"
+          },
+          {
+            "name": "exploration_score",
+            "type": "FLOAT"
+          },
+          {
+            "name": "rps_percentile",
+            "type": "FLOAT"
+          },
+          {
+            "name": "category_percentile",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "scam_risk_score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "night_owl_idx",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "price_stance_bucket",
+        "type": "STRING"
+      },
+      {
+        "name": "family_recent_uses",
+        "type": "INTEGER"
+      },
+      {
+        "name": "cross_page_usage",
+        "type": "INTEGER"
+      },
+      {
+        "name": "renew_on_pct",
+        "type": "FLOAT"
+      }
+    ]
+  },
+  {
+    "id": "ml_ranker",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-11 09:54:39",
+    "modified": "2025-09-11 09:54:39",
+    "query": "WITH schedule_slots AS (\n  -- Generate schedule slots (next 24 hours)\n  SELECT\n    username_page,\n    slot_timestamp,\n    DATE(slot_timestamp) AS slot_date,\n    EXTRACT(HOUR FROM slot_timestamp) AS slot_hour,\n    EXTRACT(DAYOFWEEK FROM slot_timestamp) AS slot_dow\n  FROM (\n    SELECT DISTINCT username_page\n    FROM `of-scheduler-proj.layer_05_ml.feature_store`\n    WHERE computed_date = CURRENT_DATE()\n  ) u\n  CROSS JOIN (\n    SELECT timestamp AS slot_timestamp\n    FROM UNNEST(\n      GENERATE_TIMESTAMP_ARRAY(\n        CURRENT_TIMESTAMP(),\n        TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR),\n        INTERVAL 1 HOUR\n      )\n    ) AS timestamp\n  )\n),\n\nconfig AS (\n  -- Get ML configuration (will be replaced with config table)\n  SELECT\n    'active' AS page_state,\n    0.4 AS w_performance,\n    0.2 AS w_exploration,\n    0.2 AS w_recency,\n    0.2 AS w_stability,\n    10 AS epsilon_percent,  -- 10% random exploration\n    2.0 AS ucb_c,           -- UCB exploration constant\n    6 AS min_cooldown_hours,\n    0.8 AS fatigue_threshold\n),\n\neligible_captions AS (\n  -- Get eligible captions with features\n  SELECT\n    fs.*,\n    ss.slot_timestamp,\n    ss.slot_date,\n    ss.slot_hour,\n    ss.slot_dow,\n    cfg.*\n  FROM `of-scheduler-proj.layer_05_ml.feature_store` fs\n  JOIN schedule_slots ss\n    ON fs.username_page = ss.username_page\n  CROSS JOIN config cfg\n  WHERE fs.computed_date = CURRENT_DATE()\n    AND fs.cooldown_features.is_eligible = TRUE\n),\n\nscored_captions AS (\n  SELECT\n    username_page,\n    caption_id,\n    slot_timestamp,\n    slot_date,\n    slot_hour,\n    \n    -- Component scores\n    composite_scores.rps_percentile AS performance_score,\n    exploration_features.ucb_bonus * ucb_c AS exploration_score,\n    EXP(-0.1 * temporal_features.hours_since_use / 24) AS recency_score,\n    performance_features.stability_score AS stability_score,\n    \n    -- Weighted combination\n    (\n      w_performance * composite_scores.rps_percentile +\n      w_exploration * exploration_features.ucb_bonus * ucb_c +\n      w_recency * EXP(-0.1 * temporal_features.hours_since_use / 24) +\n      w_stability * performance_features.stability_score\n    ) AS base_score,\n    \n    -- Apply epsilon-greedy exploration\n    CASE\n      -- Use hash for deterministic randomization\n      WHEN MOD(ABS(FARM_FINGERPRINT(CONCAT(caption_id, CAST(slot_timestamp AS STRING)))), 100) < epsilon_percent\n      THEN RAND()  -- Pure random for exploration\n      ELSE (\n        w_performance * composite_scores.rps_percentile +\n        w_exploration * exploration_features.ucb_bonus * ucb_c +\n        w_recency * EXP(-0.1 * temporal_features.hours_since_use / 24) +\n        w_stability * performance_features.stability_score\n      )\n    END AS final_score,\n    \n    -- Temporal bonus (boost if it's the best hour for this caption)\n    CASE\n      WHEN slot_hour = temporal_features.best_hour THEN 1.2\n      WHEN ABS(slot_hour - temporal_features.best_hour) <= 2 THEN 1.1\n      ELSE 1.0\n    END AS temporal_multiplier,\n    \n    -- Features for debugging\n    performance_features,\n    exploration_features,\n    temporal_features,\n    statistical_features,\n    cooldown_features,\n    composite_scores\n    \n  FROM eligible_captions\n),\n\nranked_captions AS (\n  SELECT\n    *,\n    final_score * temporal_multiplier AS adjusted_score,\n    \n    -- Ranking\n    ROW_NUMBER() OVER (\n      PARTITION BY username_page, slot_timestamp\n      ORDER BY final_score * temporal_multiplier DESC\n    ) AS rank,\n    \n    -- Percentile within slot\n    PERCENT_RANK() OVER (\n      PARTITION BY username_page, slot_timestamp\n      ORDER BY final_score * temporal_multiplier\n    ) AS score_percentile\n    \n  FROM scored_captions\n)\n\nSELECT\n  -- Core fields\n  username_page,\n  caption_id,\n  slot_timestamp,\n  slot_date,\n  slot_hour,\n  rank,\n  \n  -- Scores\n  ROUND(adjusted_score, 4) AS score,\n  ROUND(score_percentile * 100, 2) AS score_percentile,\n  ROUND(performance_score, 4) AS performance_component,\n  ROUND(exploration_score, 4) AS exploration_component,\n  ROUND(recency_score, 4) AS recency_component,\n  ROUND(stability_score, 4) AS stability_component,\n  \n  -- Key metrics for display\n  ROUND(performance_features.rps_smoothed, 2) AS expected_rps,\n  ROUND(performance_features.confidence_score, 3) AS confidence,\n  ROUND(temporal_features.hours_since_use / 24, 1) AS days_since_use,\n  performance_features.sends_30d AS recent_sends,\n  \n  -- Recommendation category\n  CASE\n    WHEN rank = 1 THEN 'primary'\n    WHEN rank <= 3 THEN 'secondary'\n    WHEN rank <= 5 THEN 'backup'\n    ELSE 'alternative'\n  END AS recommendation_tier,\n  \n  -- Exploration flag\n  CASE\n    WHEN exploration_score > performance_score THEN TRUE\n    ELSE FALSE\n  END AS is_exploration,\n  \n  -- Debug info (can be removed in production)\n  STRUCT(\n    performance_features.rps_30d,\n    performance_features.trend_slope,\n    exploration_features.ucb_bonus,\n    temporal_features.best_hour,\n    cooldown_features.fatigue_score\n  ) AS debug_info\n  \nFROM ranked_captions\nWHERE rank <= 10",
+    "schema": [
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "slot_timestamp",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "slot_date",
+        "type": "DATE"
+      },
+      {
+        "name": "slot_hour",
+        "type": "INTEGER"
+      },
+      {
+        "name": "rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "score_percentile",
+        "type": "FLOAT"
+      },
+      {
+        "name": "performance_component",
+        "type": "FLOAT"
+      },
+      {
+        "name": "exploration_component",
+        "type": "FLOAT"
+      },
+      {
+        "name": "recency_component",
+        "type": "FLOAT"
+      },
+      {
+        "name": "stability_component",
+        "type": "FLOAT"
+      },
+      {
+        "name": "expected_rps",
+        "type": "FLOAT"
+      },
+      {
+        "name": "confidence",
+        "type": "FLOAT"
+      },
+      {
+        "name": "days_since_use",
+        "type": "FLOAT"
+      },
+      {
+        "name": "recent_sends",
+        "type": "INTEGER"
+      },
+      {
+        "name": "recommendation_tier",
+        "type": "STRING"
+      },
+      {
+        "name": "is_exploration",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "debug_info",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "rps_30d",
+            "type": "FLOAT"
+          },
+          {
+            "name": "trend_slope",
+            "type": "FLOAT"
+          },
+          {
+            "name": "ucb_bonus",
+            "type": "FLOAT"
+          },
+          {
+            "name": "best_hour",
+            "type": "INTEGER"
+          },
+          {
+            "name": "fatigue_score",
+            "type": "FLOAT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "v_caption_features",
+    "type": "VIEW",
+    "description": "Refactored view to generate caption features from the new foundation layer, serving as a clean input for the ML feature store.",
+    "created": "2025-09-13 01:45:40",
+    "modified": "2025-09-13 01:45:40",
+    "query": "SELECT d.caption_key, d.caption_id, d.caption_hash, d.caption_text, d.caption_category, d.content_tags, d.explicitness_level, d.creator_username, d.username_page, d.caption_length AS len_words, `of-scheduler-proj.util.emoji_count`(d.caption_text) AS emoji_cnt, `of-scheduler-proj.util.length_bin`(d.caption_text) AS len_bin, `of-scheduler-proj.util.emoji_bin`(d.caption_text) AS emoji_bin, `of-scheduler-proj.util.has_cta`(d.caption_text) AS has_cta, `of-scheduler-proj.util.has_urgency`(d.caption_text) AS has_urgency, `of-scheduler-proj.util.ends_with_question`(d.caption_text) AS ends_with_question FROM `of-scheduler-proj.layer_03_foundation.dim_caption` d WHERE d.is_active = TRUE",
+    "schema": [
+      {
+        "name": "caption_key",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_category",
+        "type": "STRING"
+      },
+      {
+        "name": "content_tags",
+        "type": "STRING",
+        "mode": "REPEATED"
+      },
+      {
+        "name": "explicitness_level",
+        "type": "INTEGER"
+      },
+      {
+        "name": "creator_username",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "len_words",
+        "type": "INTEGER"
+      },
+      {
+        "name": "emoji_cnt",
+        "type": "INTEGER"
+      },
+      {
+        "name": "len_bin",
+        "type": "STRING"
+      },
+      {
+        "name": "emoji_bin",
+        "type": "STRING"
+      },
+      {
+        "name": "has_cta",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "has_urgency",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "ends_with_question",
+        "type": "BOOLEAN"
+      }
+    ]
+  },
+  {
+    "id": "v_caption_last_used",
+    "type": "VIEW",
+    "description": "Last time a caption was used by a creator (stable on creator_key + caption_hash).",
+    "created": "2025-09-13 01:59:36",
+    "modified": "2025-09-13 01:59:36",
+    "query": "SELECT f.creator_key, c.username AS username_std, d.caption_hash, MAX(f.send_timestamp) AS last_used_ts FROM `of-scheduler-proj.layer_03_foundation.fact_message_send` AS f JOIN `of-scheduler-proj.layer_03_foundation.dim_creator` AS c ON f.creator_key = c.creator_key AND c.is_current_record = TRUE JOIN `of-scheduler-proj.layer_03_foundation.dim_caption` AS d ON f.caption_key = d.caption_key WHERE COALESCE(f.quality_flag,'valid') = 'valid' AND f.send_date >= DATE_SUB(CURRENT_DATE('UTC'), INTERVAL 365 DAY) GROUP BY 1,2,3",
+    "schema": [
+      {
+        "name": "creator_key",
+        "type": "STRING"
+      },
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "last_used_ts",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "v_caption_safe_candidates",
+    "type": "VIEW",
+    "description": "Refactored view to filter caption candidates based on creator-specific content profiles (e.g., explicitness, themes).",
+    "created": "2025-09-13 01:46:18",
+    "modified": "2025-09-13 01:46:18",
+    "query": "WITH creator_profiles AS ( SELECT creator_key, 'explicit' AS max_explicitness, ['main'] AS allowed_types, CAST(NULL AS STRING) AS blocked_themes FROM `of-scheduler-proj.layer_03_foundation.dim_creator` WHERE is_current_record = TRUE ) SELECT feat.* FROM `of-scheduler-proj.layer_05_ml.v_caption_features` feat JOIN `of-scheduler-proj.layer_03_foundation.dim_creator` c ON feat.creator_username = c.username AND c.is_current_record = TRUE JOIN creator_profiles p ON c.creator_key = p.creator_key WHERE (p.max_explicitness = 'explicit' OR (p.max_explicitness = 'moderate' AND feat.explicitness_level <= 2) OR (p.max_explicitness = 'mild' AND feat.explicitness_level <= 1))",
+    "schema": [
+      {
+        "name": "caption_key",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_category",
+        "type": "STRING"
+      },
+      {
+        "name": "content_tags",
+        "type": "STRING",
+        "mode": "REPEATED"
+      },
+      {
+        "name": "explicitness_level",
+        "type": "INTEGER"
+      },
+      {
+        "name": "creator_username",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "len_words",
+        "type": "INTEGER"
+      },
+      {
+        "name": "emoji_cnt",
+        "type": "INTEGER"
+      },
+      {
+        "name": "len_bin",
+        "type": "STRING"
+      },
+      {
+        "name": "emoji_bin",
+        "type": "STRING"
+      },
+      {
+        "name": "has_cta",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "has_urgency",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "ends_with_question",
+        "type": "BOOLEAN"
+      }
+    ]
+  },
+  {
+    "id": "v_rank_ready",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-12 12:15:30",
+    "modified": "2025-09-12 12:15:30",
+    "query": "WITH latest_features AS (\n  SELECT\n    username_page,\n    caption_id,\n    computed_date,\n    performance_features,\n    statistical_features,\n    exploration_features,\n    temporal_features,\n    cooldown_features,\n    composite_scores,\n    RANK() OVER (PARTITION BY username_page, caption_id ORDER BY computed_date DESC) AS rn\n  FROM `of-scheduler-proj.layer_05_ml.feature_store`\n  WHERE computed_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)\n),\next_features AS (\n  SELECT * FROM `of-scheduler-proj.layer_05_ml.feature_store_ext`\n),\nintensity AS (\n  SELECT * FROM `of-scheduler-proj.layer_04_semantic.v_page_intensity_7d`\n),\nbandit_params AS (\n  SELECT * FROM `of-scheduler-proj.ops_config.ml_params_bandit`\n)\nSELECT\n  f.username_page AS page_key,\n  f.caption_id,\n  f.computed_date,\n  f.performance_features,\n  f.statistical_features,\n  f.exploration_features,\n  f.temporal_features,\n  f.cooldown_features,\n  f.composite_scores,\n  e.scam_risk_score,\n  e.night_owl_idx,\n  e.price_stance_bucket,\n  e.family_recent_uses,\n  e.cross_page_usage,\n  e.renew_on_pct,\n  i.recommended_tier AS current_tier,\n  b.alpha,\n  b.beta,\n  b.epsilon,\n  b.ucb_c,\n  b.base_cooldown_hours,\n  b.use_true_thompson,\n  0 AS uses_today  -- Placeholder (would come from ops_audit.ml_events)\nFROM latest_features f\nLEFT JOIN ext_features e ON f.username_page = e.username_page AND f.caption_id = e.caption_id\nLEFT JOIN intensity i ON f.username_page = i.page_key\nLEFT JOIN bandit_params b ON i.recommended_tier = b.tier\nWHERE f.rn = 1",
+    "schema": [
+      {
+        "name": "page_key",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "computed_date",
+        "type": "DATE"
+      },
+      {
+        "name": "performance_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "rps_30d",
+            "type": "FLOAT"
+          },
+          {
+            "name": "rps_weighted",
+            "type": "FLOAT"
+          },
+          {
+            "name": "rps_smoothed",
+            "type": "FLOAT"
+          },
+          {
+            "name": "purchase_rate_30d",
+            "type": "FLOAT"
+          },
+          {
+            "name": "purchase_rate_smoothed",
+            "type": "FLOAT"
+          },
+          {
+            "name": "revenue_30d",
+            "type": "FLOAT"
+          },
+          {
+            "name": "sends_30d",
+            "type": "INTEGER"
+          },
+          {
+            "name": "trend_slope",
+            "type": "FLOAT"
+          },
+          {
+            "name": "stability_score",
+            "type": "FLOAT"
+          },
+          {
+            "name": "confidence_score",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "statistical_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "median_rps",
+            "type": "FLOAT"
+          },
+          {
+            "name": "p75_rps",
+            "type": "FLOAT"
+          },
+          {
+            "name": "p25_rps",
+            "type": "FLOAT"
+          },
+          {
+            "name": "rps_stddev",
+            "type": "FLOAT"
+          },
+          {
+            "name": "iqr",
+            "type": "FLOAT"
+          },
+          {
+            "name": "coefficient_variation",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "exploration_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "ucb_bonus",
+            "type": "FLOAT"
+          },
+          {
+            "name": "exploration_temperature",
+            "type": "FLOAT"
+          },
+          {
+            "name": "novelty_bonus",
+            "type": "FLOAT"
+          },
+          {
+            "name": "smoothing_weight",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "temporal_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "best_hour",
+            "type": "INTEGER"
+          },
+          {
+            "name": "best_hour_rps",
+            "type": "FLOAT"
+          },
+          {
+            "name": "best_day_of_week",
+            "type": "INTEGER"
+          },
+          {
+            "name": "hours_since_use",
+            "type": "INTEGER"
+          },
+          {
+            "name": "last_used_timestamp",
+            "type": "TIMESTAMP"
+          },
+          {
+            "name": "active_days_30d",
+            "type": "INTEGER"
+          }
+        ]
+      },
+      {
+        "name": "cooldown_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "base_cooldown_hours",
+            "type": "FLOAT"
+          },
+          {
+            "name": "fatigue_score",
+            "type": "FLOAT"
+          },
+          {
+            "name": "is_eligible",
+            "type": "BOOLEAN"
+          }
+        ]
+      },
+      {
+        "name": "composite_scores",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "base_score",
+            "type": "FLOAT"
+          },
+          {
+            "name": "exploration_score",
+            "type": "FLOAT"
+          },
+          {
+            "name": "rps_percentile",
+            "type": "FLOAT"
+          },
+          {
+            "name": "category_percentile",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "scam_risk_score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "night_owl_idx",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "price_stance_bucket",
+        "type": "STRING"
+      },
+      {
+        "name": "family_recent_uses",
+        "type": "INTEGER"
+      },
+      {
+        "name": "cross_page_usage",
+        "type": "INTEGER"
+      },
+      {
+        "name": "renew_on_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "current_tier",
+        "type": "STRING"
+      },
+      {
+        "name": "alpha",
+        "type": "FLOAT"
+      },
+      {
+        "name": "beta",
+        "type": "FLOAT"
+      },
+      {
+        "name": "epsilon",
+        "type": "FLOAT"
+      },
+      {
+        "name": "ucb_c",
+        "type": "FLOAT"
+      },
+      {
+        "name": "base_cooldown_hours",
+        "type": "FLOAT"
+      },
+      {
+        "name": "use_true_thompson",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "uses_today",
+        "type": "INTEGER"
+      }
+    ]
+  }
+]

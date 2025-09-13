@@ -1,0 +1,9 @@
+{
+  "dataset_id": "dashboard",
+  "counts": {
+    "tables": 0,
+    "views": 5,
+    "materialized_views": 0,
+    "routines": 0
+  }
+}

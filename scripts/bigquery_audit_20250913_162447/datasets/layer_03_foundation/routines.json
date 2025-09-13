@@ -1,0 +1,25 @@
+[
+  {
+    "id": "sp_upsert_fact_gmail_message_send",
+    "type": "PROCEDURE",
+    "language": "SQL",
+    "created": "2025-09-12 02:10:44",
+    "modified": "2025-09-12 02:10:44",
+    "arguments": [
+      {
+        "name": "ingestion_start",
+        "dataType": {
+          "typeKind": "DATE"
+        }
+      },
+      {
+        "name": "ingestion_end",
+        "dataType": {
+          "typeKind": "DATE"
+        }
+      }
+    ],
+    "return_type": null,
+    "definition": "BEGIN\n  -- Compute the event-date window for this ingestion batch\n  DECLARE event_start DATE;\n  DECLARE event_end   DATE;\n\n  SET (event_start, event_end) = (\n    SELECT AS STRUCT\n      MIN(message_sent_date), MAX(message_sent_date)\n    FROM `of-scheduler-proj.layer_02_staging.fn_gmail_events_normalized`(ingestion_start, ingestion_end)\n    WHERE message_sent_date IS NOT NULL\n  );\n\n  -- Nothing to upsert\n  IF event_start IS NULL OR event_end IS NULL THEN\n    RETURN;\n  END IF;\n\n  MERGE `of-scheduler-proj.layer_03_foundation.fact_gmail_message_send` T\n  USING (\n    SELECT\n      TO_HEX(SHA256(CONCAT(\n        caption_hash, '|', IFNULL(Sender, 'null'), '|', CAST(message_sent_date AS STRING)\n      ))) AS message_send_key,\n      caption_hash,\n      caption_text_clean AS caption_text,\n      Sender AS sender,\n      username_std,\n      message_sent_ts,\n      message_sent_date,\n      price_usd,\n      revenue_usd,\n      sent_count,\n      viewed_count,\n      purchased_count,\n      view_rate,\n      purchase_rate,\n      purchase_given_view,\n      revenue_per_send,\n      price_tier,\n      send_size_category,\n      message_id,\n      source_file,\n      ingestion_run_id,\n      ingested_at,\n      CURRENT_TIMESTAMP() AS last_updated_at\n    FROM `of-scheduler-proj.layer_02_staging.fn_gmail_events_normalized`(ingestion_start, ingestion_end)\n    WHERE message_sent_date BETWEEN event_start AND event_end\n  ) AS S\n  ON  T.message_send_key   = S.message_send_key\n  AND T.message_sent_date BETWEEN event_start AND event_end   -- target partition filter\n\n  WHEN MATCHED AND S.ingested_at > T.ingested_at THEN UPDATE SET\n    caption_text        = S.caption_text,\n    price_usd           = S.price_usd,\n    revenue_usd         = S.revenue_usd,\n    sent_count          = S.sent_count,\n    viewed_count        = S.viewed_count,\n    purchased_count     = S.purchased_count,\n    view_rate           = S.view_rate,\n    purchase_rate       = S.purchase_rate,\n    purchase_given_view = S.purchase_given_view,\n    revenue_per_send    = S.revenue_per_send,\n    price_tier          = S.price_tier,\n    send_size_category  = S.send_size_category,\n    message_id          = S.message_id,\n    source_file         = S.source_file,\n    ingestion_run_id    = S.ingestion_run_id,\n    ingested_at         = S.ingested_at,\n    last_updated_at     = S.last_updated_at\n\n  WHEN NOT MATCHED THEN INSERT (\n    message_send_key, caption_hash, caption_text, sender, username_std,\n    message_sent_ts, message_sent_date,\n    price_usd, revenue_usd, sent_count, viewed_count, purchased_count,\n    view_rate, purchase_rate, purchase_given_view, revenue_per_send,\n    price_tier, send_size_category,\n    message_id, source_file, ingestion_run_id, ingested_at, last_updated_at\n  ) VALUES (\n    S.message_send_key, S.caption_hash, S.caption_text, S.sender, S.username_std,\n    S.message_sent_ts, S.message_sent_date,\n    S.price_usd, S.revenue_usd, S.sent_count, S.viewed_count, S.purchased_count,\n    S.view_rate, S.purchase_rate, S.purchase_given_view, S.revenue_per_send,\n    S.price_tier, S.send_size_category,\n    S.message_id, S.source_file, S.ingestion_run_id, S.ingested_at, S.last_updated_at\n  );\nEND"
+  }
+]

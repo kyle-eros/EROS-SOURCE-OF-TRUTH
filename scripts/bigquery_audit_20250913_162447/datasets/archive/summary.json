@@ -1,0 +1,9 @@
+{
+  "dataset_id": "archive",
+  "counts": {
+    "tables": 1,
+    "views": 0,
+    "materialized_views": 0,
+    "routines": 0
+  }
+}

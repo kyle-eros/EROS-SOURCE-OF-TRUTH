@@ -1,0 +1,89 @@
+{
+  "creationTime": "1757189347033",
+  "etag": "Q8x4I2bXY4d+Chf/OHFCQw==",
+  "id": "of-scheduler-proj:mart.v_dm_style_lift_28d_v3",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1757189347033",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "dow",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod",
+        "type": "INTEGER"
+      },
+      {
+        "name": "len_bin",
+        "type": "STRING"
+      },
+      {
+        "name": "emoji_bin",
+        "type": "STRING"
+      },
+      {
+        "name": "has_cta",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "has_urgency",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "ends_with_question",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "sends",
+        "type": "INTEGER"
+      },
+      {
+        "name": "eff_w",
+        "type": "FLOAT"
+      },
+      {
+        "name": "rps_w",
+        "type": "FLOAT"
+      },
+      {
+        "name": "baseline_rps",
+        "type": "FLOAT"
+      },
+      {
+        "name": "lift_vs_slot",
+        "type": "FLOAT"
+      },
+      {
+        "name": "lift_vs_slot_smooth",
+        "type": "FLOAT"
+      },
+      {
+        "name": "lift_vs_slot_smooth_clamped",
+        "type": "FLOAT"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_dm_style_lift_28d_v3",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_dm_style_lift_28d_v3"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH cfg AS (\n  SELECT\n    CAST(COALESCE(MAX(CASE WHEN setting_key='half_life_days_rev' THEN setting_val END), '45') AS FLOAT64) AS hl_days,\n    CAST(COALESCE(MAX(CASE WHEN setting_key='prior_k_style'      THEN setting_val END), '30') AS FLOAT64) AS k_style\n  FROM `of-scheduler-proj.core.settings_modeling`\n),\nbase AS (\n  SELECT\n    f.username_page, f.dow, f.hod, f.caption_hash, f.rps, f.sending_ts_utc,\n    `of-scheduler-proj.util.halflife_weight`(f.sending_ts_utc, (SELECT hl_days FROM cfg)) AS w\n  FROM `of-scheduler-proj.mart.fn_dm_send_facts`(28) f\n),\nslot_baseline AS (\n  SELECT\n    username_page, dow, hod,\n    SAFE_DIVIDE(SUM(rps*w), NULLIF(SUM(w),0)) AS baseline_rps,\n    SUM(w) AS slot_w\n  FROM base\n  GROUP BY 1,2,3\n),\nfeat AS (\n  SELECT\n    username_page, caption_hash, len_bin, emoji_bin, has_cta, has_urgency, ends_with_question\n  FROM `of-scheduler-proj.core.v_caption_candidates_features_v3`\n),\nagg AS (\n  SELECT\n    b.username_page, b.dow, b.hod,\n    f.len_bin, f.emoji_bin, f.has_cta, f.has_urgency, f.ends_with_question,\n    COUNT(*) AS sends,\n    SUM(b.w) AS eff_w,\n    SAFE_DIVIDE(SUM(b.rps*b.w), NULLIF(SUM(b.w),0)) AS rps_w\n  FROM base b\n  JOIN feat f\n    USING (username_page, caption_hash)\n  GROUP BY 1,2,3,4,5,6,7,8\n)\nSELECT\n  a.username_page, a.dow, a.hod,\n  a.len_bin, a.emoji_bin, a.has_cta, a.has_urgency, a.ends_with_question,\n  a.sends, a.eff_w,\n  a.rps_w,\n  sb.baseline_rps,\n  -- raw lift (decayed)\n  SAFE_DIVIDE(a.rps_w, NULLIF(sb.baseline_rps,0)) - 1 AS lift_vs_slot,\n  -- smoothed lift: shrink towards slot baseline with k_style pseudo-weight\n  SAFE_DIVIDE(\n    (a.eff_w * a.rps_w + (SELECT k_style FROM cfg) * sb.baseline_rps),\n    NULLIF(a.eff_w + (SELECT k_style FROM cfg), 0)\n  ) / NULLIF(sb.baseline_rps,0) - 1 AS lift_vs_slot_smooth,\n  -- clamped (safe) lift to avoid extreme effects\n  GREATEST(-0.50, LEAST(0.50,\n    SAFE_DIVIDE(\n      (a.eff_w * a.rps_w + (SELECT k_style FROM cfg) * sb.baseline_rps),\n      NULLIF(a.eff_w + (SELECT k_style FROM cfg), 0)\n    ) / NULLIF(sb.baseline_rps,0) - 1\n  )) AS lift_vs_slot_smooth_clamped\nFROM agg a\nJOIN slot_baseline sb\n  USING (username_page, dow, hod)",
+    "useLegacySql": false
+  }
+}

@@ -1,0 +1,1025 @@
+[
+  {
+    "id": "caption_ingestion_log",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-10 02:34:31",
+    "modified": "2025-09-10 02:34:31",
+    "size_bytes": 462,
+    "num_rows": 4,
+    "schema": [
+      {
+        "name": "run_id",
+        "type": "STRING"
+      },
+      {
+        "name": "run_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "source_rows",
+        "type": "INTEGER"
+      },
+      {
+        "name": "new_captions_inserted",
+        "type": "INTEGER"
+      },
+      {
+        "name": "missing_text",
+        "type": "INTEGER"
+      },
+      {
+        "name": "duplicates_detected",
+        "type": "INTEGER"
+      },
+      {
+        "name": "window_scanned_days",
+        "type": "INTEGER"
+      },
+      {
+        "name": "error_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "error_sample",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "caption_ingestion_log_v1_backup_20250909",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-10 02:34:19",
+    "modified": "2025-09-10 02:34:19",
+    "size_bytes": 462,
+    "num_rows": 4,
+    "schema": [
+      {
+        "name": "run_id",
+        "type": "STRING"
+      },
+      {
+        "name": "run_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "source_rows",
+        "type": "INTEGER"
+      },
+      {
+        "name": "new_captions_inserted",
+        "type": "INTEGER"
+      },
+      {
+        "name": "missing_text",
+        "type": "INTEGER"
+      },
+      {
+        "name": "duplicates_detected",
+        "type": "INTEGER"
+      },
+      {
+        "name": "window_scanned_days",
+        "type": "INTEGER"
+      },
+      {
+        "name": "error_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "error_sample",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "caption_overrides",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 04:27:24",
+    "modified": "2025-09-11 04:27:24",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "override_timestamp",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "scheduler_email",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "slot_time",
+        "type": "STRING"
+      },
+      {
+        "name": "original_caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "override_caption_id",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "override_reason",
+        "type": "STRING"
+      },
+      {
+        "name": "slot_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "performance_tracked",
+        "type": "BOOLEAN",
+        "defaultValueExpression": "FALSE"
+      }
+    ]
+  },
+  {
+    "id": "explore_exploit_config_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 06:59:53",
+    "modified": "2025-09-11 07:18:33",
+    "size_bytes": 51,
+    "num_rows": 1,
+    "schema": [
+      {
+        "name": "config_key",
+        "type": "STRING"
+      },
+      {
+        "name": "min_obs_for_exploit",
+        "type": "INTEGER"
+      },
+      {
+        "name": "max_explorer_share",
+        "type": "FLOAT"
+      },
+      {
+        "name": "cold_start_days",
+        "type": "INTEGER"
+      },
+      {
+        "name": "thompson_sampling_enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "ucb_enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "decay_factor",
+        "type": "FLOAT"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "fallback_config_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 07:16:25",
+    "modified": "2025-09-11 07:18:37",
+    "size_bytes": 206,
+    "num_rows": 2,
+    "schema": [
+      {
+        "name": "page_type",
+        "type": "STRING"
+      },
+      {
+        "name": "fallback_caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "fallback_caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "fallback_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "reason_code",
+        "type": "STRING"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "learning_changelog",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-10 02:35:35",
+    "modified": "2025-09-10 02:35:35",
+    "size_bytes": 180075,
+    "num_rows": 1908,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "knob",
+        "type": "STRING"
+      },
+      {
+        "name": "old_value",
+        "type": "STRING"
+      },
+      {
+        "name": "new_value",
+        "type": "STRING"
+      },
+      {
+        "name": "confidence",
+        "type": "FLOAT"
+      },
+      {
+        "name": "reason",
+        "type": "STRING"
+      },
+      {
+        "name": "computed_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "applied_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "learning_changelog_v1_backup_20250909",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-10 02:35:22",
+    "modified": "2025-09-10 02:35:22",
+    "size_bytes": 180075,
+    "num_rows": 1908,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "knob",
+        "type": "STRING"
+      },
+      {
+        "name": "old_value",
+        "type": "STRING"
+      },
+      {
+        "name": "new_value",
+        "type": "STRING"
+      },
+      {
+        "name": "confidence",
+        "type": "FLOAT"
+      },
+      {
+        "name": "reason",
+        "type": "STRING"
+      },
+      {
+        "name": "computed_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "applied_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "ml_ranking_weights_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 06:59:51",
+    "modified": "2025-09-11 07:18:30",
+    "size_bytes": 418,
+    "num_rows": 4,
+    "schema": [
+      {
+        "name": "page_state",
+        "type": "STRING"
+      },
+      {
+        "name": "w_rps",
+        "type": "FLOAT"
+      },
+      {
+        "name": "w_open",
+        "type": "FLOAT"
+      },
+      {
+        "name": "w_buy",
+        "type": "FLOAT"
+      },
+      {
+        "name": "w_dowhod",
+        "type": "FLOAT"
+      },
+      {
+        "name": "w_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "w_novelty",
+        "type": "FLOAT"
+      },
+      {
+        "name": "w_momentum",
+        "type": "FLOAT"
+      },
+      {
+        "name": "ucb_c",
+        "type": "FLOAT"
+      },
+      {
+        "name": "epsilon",
+        "type": "FLOAT"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_by",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "ml_training_signals",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 04:27:25",
+    "modified": "2025-09-11 04:27:25",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "signal_timestamp",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "signal_type",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "slot_context",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "hour_of_day",
+            "type": "INTEGER"
+          },
+          {
+            "name": "day_of_week",
+            "type": "INTEGER"
+          },
+          {
+            "name": "price_point",
+            "type": "FLOAT"
+          },
+          {
+            "name": "page_type",
+            "type": "STRING"
+          }
+        ]
+      },
+      {
+        "name": "original_caption_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "caption_id",
+            "type": "STRING"
+          },
+          {
+            "name": "predicted_revenue",
+            "type": "FLOAT"
+          },
+          {
+            "name": "predicted_open_rate",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "override_caption_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "caption_id",
+            "type": "STRING"
+          },
+          {
+            "name": "actual_revenue",
+            "type": "FLOAT"
+          },
+          {
+            "name": "actual_open_rate",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "performance_delta",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "revenue_impact",
+            "type": "FLOAT"
+          },
+          {
+            "name": "open_rate_impact",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "scheduler_context",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "email",
+            "type": "STRING"
+          },
+          {
+            "name": "experience_days",
+            "type": "INTEGER"
+          },
+          {
+            "name": "historical_accuracy",
+            "type": "FLOAT"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "onboarding_changelog",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-10 02:37:01",
+    "modified": "2025-09-10 02:37:01",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "username_raw",
+        "type": "STRING"
+      },
+      {
+        "name": "assigned_scheduler",
+        "type": "STRING"
+      },
+      {
+        "name": "tz",
+        "type": "STRING"
+      },
+      {
+        "name": "tier_initial",
+        "type": "STRING"
+      },
+      {
+        "name": "new_until",
+        "type": "DATE"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "notes",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "onboarding_changelog_v1_backup_20250909",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-10 02:36:33",
+    "modified": "2025-09-10 02:36:33",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "username_raw",
+        "type": "STRING"
+      },
+      {
+        "name": "assigned_scheduler",
+        "type": "STRING"
+      },
+      {
+        "name": "tz",
+        "type": "STRING"
+      },
+      {
+        "name": "tier_initial",
+        "type": "STRING"
+      },
+      {
+        "name": "new_until",
+        "type": "DATE"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "notes",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "override_feedback",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 04:27:25",
+    "modified": "2025-09-11 04:27:25",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "feedback_timestamp",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "scheduler_email",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "override_result",
+        "type": "STRING"
+      },
+      {
+        "name": "feedback_message",
+        "type": "STRING"
+      },
+      {
+        "name": "revenue_delta",
+        "type": "FLOAT"
+      },
+      {
+        "name": "open_rate_delta",
+        "type": "FLOAT"
+      },
+      {
+        "name": "ml_training_completed",
+        "type": "BOOLEAN",
+        "defaultValueExpression": "FALSE"
+      }
+    ]
+  },
+  {
+    "id": "personalization_weights_changelog",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-10 02:37:49",
+    "modified": "2025-09-10 02:37:49",
+    "size_bytes": 15167,
+    "num_rows": 114,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "old_weight_volume",
+        "type": "FLOAT"
+      },
+      {
+        "name": "new_weight_volume",
+        "type": "FLOAT"
+      },
+      {
+        "name": "old_weight_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "new_weight_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "old_weight_hours",
+        "type": "FLOAT"
+      },
+      {
+        "name": "new_weight_hours",
+        "type": "FLOAT"
+      },
+      {
+        "name": "old_exploration_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "new_exploration_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "rev7",
+            "type": "FLOAT"
+          },
+          {
+            "name": "revp",
+            "type": "FLOAT"
+          },
+          {
+            "name": "slope_pct_7d",
+            "type": "FLOAT"
+          },
+          {
+            "name": "hour_peak_ratio",
+            "type": "FLOAT"
+          },
+          {
+            "name": "corr_final",
+            "type": "FLOAT"
+          },
+          {
+            "name": "volume_boost",
+            "type": "FLOAT"
+          },
+          {
+            "name": "buy_rate_ppv_28d",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "computed_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "applied_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "personalization_weights_changelog_v1_backup_20250909",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-10 02:37:20",
+    "modified": "2025-09-10 02:37:20",
+    "size_bytes": 15167,
+    "num_rows": 114,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "old_weight_volume",
+        "type": "FLOAT"
+      },
+      {
+        "name": "new_weight_volume",
+        "type": "FLOAT"
+      },
+      {
+        "name": "old_weight_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "new_weight_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "old_weight_hours",
+        "type": "FLOAT"
+      },
+      {
+        "name": "new_weight_hours",
+        "type": "FLOAT"
+      },
+      {
+        "name": "old_exploration_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "new_exploration_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "rev7",
+            "type": "FLOAT"
+          },
+          {
+            "name": "revp",
+            "type": "FLOAT"
+          },
+          {
+            "name": "slope_pct_7d",
+            "type": "FLOAT"
+          },
+          {
+            "name": "hour_peak_ratio",
+            "type": "FLOAT"
+          },
+          {
+            "name": "corr_final",
+            "type": "FLOAT"
+          },
+          {
+            "name": "volume_boost",
+            "type": "FLOAT"
+          },
+          {
+            "name": "buy_rate_ppv_28d",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "computed_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "applied_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "price_bands_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 07:16:26",
+    "modified": "2025-09-11 07:18:40",
+    "size_bytes": 375,
+    "num_rows": 6,
+    "schema": [
+      {
+        "name": "tier",
+        "type": "STRING"
+      },
+      {
+        "name": "page_type",
+        "type": "STRING"
+      },
+      {
+        "name": "min_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "max_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "optimal_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "ladder_steps",
+        "type": "INTEGER"
+      },
+      {
+        "name": "ladder_increment",
+        "type": "FLOAT"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "quality_thresholds_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 07:16:25",
+    "modified": "2025-09-11 07:18:35",
+    "size_bytes": 208,
+    "num_rows": 5,
+    "schema": [
+      {
+        "name": "metric_name",
+        "type": "STRING"
+      },
+      {
+        "name": "min_threshold",
+        "type": "FLOAT"
+      },
+      {
+        "name": "max_threshold",
+        "type": "FLOAT"
+      },
+      {
+        "name": "alert_enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "auto_rollback_enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "quarantine_gmail",
+    "type": "TABLE",
+    "description": "Quarantine table for Gmail ETL rows that fail validation",
+    "created": "2025-09-12 01:58:05",
+    "modified": "2025-09-12 05:01:49",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "ingestion_run_id",
+        "type": "STRING"
+      },
+      {
+        "name": "ingested_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "quarantine_reason",
+        "type": "STRING"
+      },
+      {
+        "name": "raw_message_id",
+        "type": "STRING"
+      },
+      {
+        "name": "raw_source_file",
+        "type": "STRING"
+      },
+      {
+        "name": "raw_data",
+        "type": "STRING"
+      },
+      {
+        "name": "error_details",
+        "type": "STRING"
+      },
+      {
+        "name": "quarantined_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "scheduler_assignments_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 07:16:27",
+    "modified": "2025-09-11 07:18:43",
+    "size_bytes": 205,
+    "num_rows": 3,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduler_name",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduler_email",
+        "type": "STRING"
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "send_log",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-05 04:06:04",
+    "modified": "2025-09-05 04:06:40",
+    "size_bytes": 179,
+    "num_rows": 1,
+    "schema": [
+      {
+        "name": "action_ts",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "action_date",
+        "type": "DATE",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "tracking_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "page_type",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduler_code",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduler_email",
+        "type": "STRING"
+      },
+      {
+        "name": "date_local",
+        "type": "DATE"
+      },
+      {
+        "name": "hod_local",
+        "type": "INTEGER"
+      },
+      {
+        "name": "price_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "status",
+        "type": "STRING"
+      },
+      {
+        "name": "action",
+        "type": "STRING"
+      },
+      {
+        "name": "source",
+        "type": "STRING"
+      }
+    ]
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "dataset_id": "mart",
+  "counts": {
+    "tables": 12,
+    "views": 42,
+    "materialized_views": 0,
+    "routines": 1
+  }
+}

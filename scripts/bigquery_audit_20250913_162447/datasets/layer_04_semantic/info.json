@@ -1,0 +1,25 @@
+{
+  "id": "layer_04_semantic",
+  "description": "Layer 4: Semantic - business logic and calculated metrics",
+  "location": "US",
+  "created": "2025-09-11 08:50:58",
+  "modified": "2025-09-11 08:50:58",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

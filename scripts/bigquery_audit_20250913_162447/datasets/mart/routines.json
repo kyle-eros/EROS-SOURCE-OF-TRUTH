@@ -1,0 +1,19 @@
+[
+  {
+    "id": "fn_dm_send_facts",
+    "type": "TABLE_VALUED_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-13 09:39:16",
+    "modified": "2025-09-13 09:39:16",
+    "arguments": [
+      {
+        "name": "days_back",
+        "dataType": {
+          "typeKind": "INT64"
+        }
+      }
+    ],
+    "return_type": null,
+    "definition": "WITH f AS ( SELECT username_page, send_timestamp AS sending_ts, price_usd, messages_sent AS sent, messages_viewed AS viewed, messages_purchased AS purchased, net_revenue_usd AS earnings, caption_key AS caption_hash FROM layer_04_semantic.v_message_facts_by_page WHERE send_timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL days_back DAY) AND COALESCE(quality_flag,'valid') = 'valid' ) SELECT SPLIT(f.username_page,'__')[SAFE_OFFSET(0)] AS username_std, CAST(NULL AS STRING) AS page_type, f.username_page, COALESCE(pd.tz,'UTC') AS timezone, f.sending_ts, DATETIME(f.sending_ts, COALESCE(pd.tz,'UTC')) AS sending_dt_local, MOD(EXTRACT(DAYOFWEEK FROM DATETIME(f.sending_ts, COALESCE(pd.tz,'UTC'))) + 5, 7) AS dow, EXTRACT(HOUR FROM DATETIME(f.sending_ts, COALESCE(pd.tz,'UTC'))) AS hod, CASE WHEN f.price_usd IS NULL OR f.price_usd = 0 THEN 'free' ELSE 'ppv' END AS dm_type, f.price_usd, f.sent, f.viewed, f.purchased, CAST(f.earnings AS NUMERIC) AS earnings, SAFE_DIVIDE(f.viewed, NULLIF(f.sent,0)) AS open_rate, SAFE_DIVIDE(f.purchased, NULLIF(f.sent,0)) AS buy_rate_sent, SAFE_DIVIDE(f.purchased, NULLIF(f.viewed,0)) AS buy_rate_viewed, SAFE_DIVIDE(CAST(f.earnings AS NUMERIC), NULLIF(f.sent,0)) AS rps, SAFE_DIVIDE(CAST(f.earnings AS NUMERIC), NULLIF(f.purchased,0)) AS arppu_dm, f.caption_hash FROM f LEFT JOIN layer_04_semantic.v_page_dim pd ON pd.username_std = SPLIT(f.username_page,'__')[SAFE_OFFSET(0)]"
+  }
+]

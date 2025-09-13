@@ -1,0 +1,25 @@
+{
+  "id": "layer_07_export",
+  "description": "Layer 7: Export - application interfaces and APIs",
+  "location": "US",
+  "created": "2025-09-11 08:51:03",
+  "modified": "2025-09-11 08:51:03",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

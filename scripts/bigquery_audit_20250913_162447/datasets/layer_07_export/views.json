@@ -1,0 +1,72 @@
+[
+  {
+    "id": "api_caption_lookup",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-11 09:55:52",
+    "modified": "2025-09-11 09:55:52",
+    "query": "WITH caption_metrics AS (\n  -- Get latest performance metrics\n  SELECT\n    caption_id,\n    MAX(temporal_features.last_used_timestamp) AS last_used,\n    AVG(performance_features.rps_smoothed) AS avg_rps,\n    AVG(performance_features.confidence_score) AS avg_confidence,\n    MIN(cooldown_features.is_eligible) AS is_available\n  FROM `of-scheduler-proj.layer_05_ml.feature_store`\n  WHERE computed_date = CURRENT_DATE()\n  GROUP BY caption_id\n)\n\nSELECT\n  -- Caption identifiers\n  dc.caption_id,\n  dc.caption_hash,\n  \n  -- Caption content\n  dc.caption_text,\n  dc.caption_category,\n  dc.caption_length,\n  \n  -- Creator info\n  dc.creator_username,\n  dc.creator_page_type,\n  dc.username_page,\n  \n  -- Performance tier\n  CASE\n    WHEN cm.avg_rps >= 1.0 THEN 'top'\n    WHEN cm.avg_rps >= 0.5 THEN 'good'\n    WHEN cm.avg_rps >= 0.2 THEN 'average'\n    WHEN cm.avg_rps IS NULL THEN 'new'\n    ELSE 'explore'\n  END AS performance_tier,\n  \n  -- Availability\n  COALESCE(cm.is_available, TRUE) AS is_available,\n  cm.last_used AS last_used_timestamp,\n  TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), cm.last_used, DAY) AS days_since_use,\n  \n  -- Metrics\n  ROUND(COALESCE(cm.avg_rps, 0), 2) AS expected_rps,\n  ROUND(COALESCE(cm.avg_confidence, 0), 2) AS confidence_score,\n  \n  -- Status\n  dc.is_active AS is_active\n  \nFROM `of-scheduler-proj.layer_03_foundation.dim_caption` dc\nLEFT JOIN caption_metrics cm\n  ON dc.caption_id = cm.caption_id\nWHERE dc.is_active = TRUE",
+    "schema": [
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_category",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_length",
+        "type": "INTEGER"
+      },
+      {
+        "name": "creator_username",
+        "type": "STRING"
+      },
+      {
+        "name": "creator_page_type",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "performance_tier",
+        "type": "STRING"
+      },
+      {
+        "name": "is_available",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "last_used_timestamp",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "days_since_use",
+        "type": "INTEGER"
+      },
+      {
+        "name": "expected_rps",
+        "type": "FLOAT"
+      },
+      {
+        "name": "confidence_score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN"
+      }
+    ]
+  }
+]

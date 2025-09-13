@@ -1,0 +1,390 @@
+[
+  {
+    "id": "caption_library",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:41:54",
+    "modified": "2025-09-13 04:41:54",
+    "size_bytes": 12021987,
+    "num_rows": 35394,
+    "schema": [
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_type",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "theme_tags",
+        "type": "STRING"
+      },
+      {
+        "name": "length_cat",
+        "type": "STRING"
+      },
+      {
+        "name": "explicitness",
+        "type": "STRING"
+      },
+      {
+        "name": "price_last_sent",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "last_used_by",
+        "type": "STRING"
+      },
+      {
+        "name": "last_used_date",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "last_used_page",
+        "type": "STRING"
+      },
+      {
+        "name": "times_used",
+        "type": "INTEGER"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "caption_hash_v2",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "model_profiles_enhanced",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:41:57",
+    "modified": "2025-09-13 04:41:57",
+    "size_bytes": 22672,
+    "num_rows": 58,
+    "schema": [
+      {
+        "name": "date_range_start",
+        "type": "DATE"
+      },
+      {
+        "name": "date_range_end",
+        "type": "DATE"
+      },
+      {
+        "name": "original_date_string",
+        "type": "STRING"
+      },
+      {
+        "name": "creator",
+        "type": "STRING"
+      },
+      {
+        "name": "subscription_net",
+        "type": "FLOAT"
+      },
+      {
+        "name": "new_subscriptions_net",
+        "type": "FLOAT"
+      },
+      {
+        "name": "recurring_subscriptions_net",
+        "type": "FLOAT"
+      },
+      {
+        "name": "tips_net",
+        "type": "FLOAT"
+      },
+      {
+        "name": "total_earnings_net",
+        "type": "FLOAT"
+      },
+      {
+        "name": "contribution_pct",
+        "type": "STRING"
+      },
+      {
+        "name": "of_ranking",
+        "type": "STRING"
+      },
+      {
+        "name": "following_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "fans_with_renew_on",
+        "type": "INTEGER"
+      },
+      {
+        "name": "renew_on_pct",
+        "type": "STRING"
+      },
+      {
+        "name": "new_fans",
+        "type": "INTEGER"
+      },
+      {
+        "name": "active_fans",
+        "type": "INTEGER"
+      },
+      {
+        "name": "change_in_expired_fan_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "message_net",
+        "type": "FLOAT"
+      },
+      {
+        "name": "creator_group",
+        "type": "STRING"
+      },
+      {
+        "name": "avg_spend_per_spender_net",
+        "type": "FLOAT"
+      },
+      {
+        "name": "avg_spend_per_transaction_net",
+        "type": "FLOAT"
+      },
+      {
+        "name": "avg_earnings_per_fan_net",
+        "type": "FLOAT"
+      },
+      {
+        "name": "avg_subscription_length",
+        "type": "STRING"
+      },
+      {
+        "name": "performance_tier",
+        "type": "STRING"
+      },
+      {
+        "name": "engagement_per_fan",
+        "type": "FLOAT"
+      },
+      {
+        "name": "lifetime_value_per_fan",
+        "type": "FLOAT"
+      },
+      {
+        "name": "net_growth_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "tips_revenue_ratio",
+        "type": "FLOAT"
+      },
+      {
+        "name": "sub_revenue_ratio",
+        "type": "FLOAT"
+      },
+      {
+        "name": "message_revenue_ratio",
+        "type": "FLOAT"
+      },
+      {
+        "name": "fan_conversion_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "renewal_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "activity_level",
+        "type": "STRING"
+      },
+      {
+        "name": "content_strategy",
+        "type": "STRING"
+      },
+      {
+        "name": "growth_momentum",
+        "type": "STRING"
+      },
+      {
+        "name": "lifecycle_stage",
+        "type": "STRING"
+      },
+      {
+        "name": "start_date",
+        "type": "DATE"
+      },
+      {
+        "name": "end_date",
+        "type": "DATE"
+      },
+      {
+        "name": "period_days",
+        "type": "INTEGER"
+      },
+      {
+        "name": "daily_revenue_avg",
+        "type": "FLOAT"
+      },
+      {
+        "name": "subscription_health_score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "assigned_scheduler",
+        "type": "STRING"
+      },
+      {
+        "name": "high_volume_ppv_quota",
+        "type": "FLOAT"
+      },
+      {
+        "name": "high_volume_bump_quota",
+        "type": "FLOAT"
+      },
+      {
+        "name": "low_volume_ppv_quota",
+        "type": "FLOAT"
+      },
+      {
+        "name": "low_volume_bump_quota",
+        "type": "FLOAT"
+      }
+    ]
+  },
+  {
+    "id": "scheduled_sends",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:42:03",
+    "modified": "2025-09-13 04:42:03",
+    "size_bytes": 986022,
+    "num_rows": 9354,
+    "schema": [
+      {
+        "name": "log_uid",
+        "type": "STRING"
+      },
+      {
+        "name": "logged_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "sent_date",
+        "type": "DATE"
+      },
+      {
+        "name": "model_name",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduler_name",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_type",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_preview",
+        "type": "STRING"
+      },
+      {
+        "name": "status",
+        "type": "STRING"
+      },
+      {
+        "name": "price_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "final_caption",
+        "type": "STRING"
+      },
+      {
+        "name": "send_time",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduled_datetime",
+        "type": "DATETIME"
+      },
+      {
+        "name": "was_modified",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "tracking_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "tracking_hash_v2",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "username_mapping",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:42:07",
+    "modified": "2025-09-13 04:42:07",
+    "size_bytes": 30326,
+    "num_rows": 267,
+    "schema": [
+      {
+        "name": "mapping_id",
+        "type": "STRING"
+      },
+      {
+        "name": "raw_username",
+        "type": "STRING"
+      },
+      {
+        "name": "normalized_username",
+        "type": "STRING"
+      },
+      {
+        "name": "base_username",
+        "type": "STRING"
+      },
+      {
+        "name": "account_type",
+        "type": "STRING"
+      },
+      {
+        "name": "standard_username",
+        "type": "STRING"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  }
+]

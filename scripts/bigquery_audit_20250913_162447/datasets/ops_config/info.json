@@ -1,0 +1,25 @@
+{
+  "id": "ops_config",
+  "description": "Configuration management - ML parameters and feature flags",
+  "location": "US",
+  "created": "2025-09-11 08:51:05",
+  "modified": "2025-09-11 08:51:05",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "creationTime": "1756897290367",
+  "etag": "hvO26bqyqIByp9GpOWGWKw==",
+  "id": "of-scheduler-proj:mart.v_page_volume_profile_28d",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1756897290367",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "avg_ppv_per_day",
+        "type": "FLOAT"
+      },
+      {
+        "name": "q90_ppv_per_day",
+        "type": "INTEGER"
+      },
+      {
+        "name": "corr_vol_rev",
+        "type": "FLOAT"
+      },
+      {
+        "name": "slope_rev_per_ppv",
+        "type": "FLOAT"
+      },
+      {
+        "name": "fatigue_ratio",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "volume_boost",
+        "type": "FLOAT"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_page_volume_profile_28d",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_page_volume_profile_28d"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH daily AS (\n  SELECT mf.username_std,\n         DATE(mf.sending_ts, pd.tz) AS date_local,\n         COUNTIF(mf.price_usd > 0) AS ppv_cnt,\n         SUM(CASE WHEN mf.price_usd > 0 THEN mf.earnings_usd ELSE 0 END) AS rev_ppv\n  FROM `of-scheduler-proj.core.message_facts` mf\n  JOIN `of-scheduler-proj.core.page_dim` pd USING (username_std)\n  WHERE mf.sending_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 28 DAY)\n  GROUP BY mf.username_std, date_local\n),\nelastic AS (\n  SELECT\n    username_std,\n    AVG(ppv_cnt) AS avg_ppv_per_day,\n    APPROX_QUANTILES(ppv_cnt, 20)[OFFSET(18)] AS q90_ppv_per_day,\n    CORR(ppv_cnt, rev_ppv) AS corr_vol_rev,\n    CASE WHEN VAR_POP(ppv_cnt)=0 THEN 0\n         ELSE COVAR_POP(ppv_cnt, rev_ppv)/VAR_POP(ppv_cnt) END AS slope_rev_per_ppv\n  FROM daily GROUP BY username_std\n),\nsends AS (\n  SELECT mf.username_std,\n         DATE(mf.sending_ts, pd.tz) AS date_local,\n         ROW_NUMBER() OVER (PARTITION BY mf.username_std, DATE(mf.sending_ts, pd.tz) ORDER BY mf.sending_ts) AS rn,\n         COUNT(*) OVER  (PARTITION BY mf.username_std, DATE(mf.sending_ts, pd.tz)) AS n_sends,\n         CASE WHEN mf.price_usd > 0 THEN mf.earnings_usd ELSE 0 END AS rev\n  FROM `of-scheduler-proj.core.message_facts` mf\n  JOIN `of-scheduler-proj.core.page_dim` pd USING (username_std)\n  WHERE mf.sending_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 28 DAY)\n    AND mf.price_usd > 0\n),\nfatigue AS (\n  SELECT username_std,\n         SAFE_DIVIDE(AVG(CASE WHEN rn=n_sends THEN rev END),\n                     NULLIF(AVG(CASE WHEN rn=1 THEN rev END),0)) AS fatigue_ratio\n  FROM sends WHERE n_sends >= 2 GROUP BY username_std\n)\nSELECT\n  e.username_std,\n  e.avg_ppv_per_day,\n  e.q90_ppv_per_day,\n  e.corr_vol_rev,\n  e.slope_rev_per_ppv,\n  COALESCE(f.fatigue_ratio,1.0) AS fatigue_ratio,\n  CASE\n    WHEN e.slope_rev_per_ppv >= 12 AND COALESCE(f.fatigue_ratio,1.0) >= 0.70 THEN 1.50\n    WHEN e.slope_rev_per_ppv >=  8 AND COALESCE(f.fatigue_ratio,1.0) >= 0.65 THEN 1.30\n    WHEN e.slope_rev_per_ppv >=  4                                    THEN 1.15\n    WHEN e.slope_rev_per_ppv <=  1 OR COALESCE(f.fatigue_ratio,1.0) < 0.50 THEN 0.90\n    ELSE 1.00\n  END AS volume_boost\nFROM elastic e LEFT JOIN fatigue f USING (username_std)",
+    "useLegacySql": false
+  }
+}

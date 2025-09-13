@@ -1,0 +1,93 @@
+{
+  "creationTime": "1756863282555",
+  "etag": "rrp2xB/SmA7UMTzrzshmzw==",
+  "id": "of-scheduler-proj:mart.v_send_to_perf_link_180d",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1756863282555",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "sent_date",
+        "type": "DATE"
+      },
+      {
+        "name": "scheduler_name",
+        "type": "STRING"
+      },
+      {
+        "name": "sender",
+        "type": "STRING"
+      },
+      {
+        "name": "logged_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "was_modified",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "price_usd_scheduled",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "sending_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "hash_msg",
+        "type": "STRING"
+      },
+      {
+        "name": "price_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "earnings_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "matched_by",
+        "type": "STRING"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_send_to_perf_link_180d",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_send_to_perf_link_180d"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH ss AS (\n  SELECT * FROM `of-scheduler-proj.core.scheduled_send_facts`\n),\nmm AS (\n  SELECT username_std, sending_ts, caption_hash, price_usd, earnings_usd, sent, viewed, purchased, sender\n  FROM `of-scheduler-proj.core.message_facts`\n  WHERE sending_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 180 DAY)\n),\ncl AS (\n  SELECT username_std, caption_id, caption_hash\n  FROM `of-scheduler-proj.core.caption_dim`\n),\ncand AS (\n  SELECT\n    ss.username_std, ss.logged_ts, ss.scheduler_name, ss.caption_id, ss.was_modified,\n    ss.price_usd_scheduled, ss.tracking_hash,\n    mm.sending_ts, mm.caption_hash AS hash_msg,\n    mm.price_usd, mm.earnings_usd, mm.sent, mm.viewed, mm.purchased, mm.sender,\n    CASE\n      WHEN ss.tracking_hash IS NOT NULL AND ss.tracking_hash = mm.caption_hash THEN 3\n      WHEN ss.caption_id IS NOT NULL AND EXISTS (\n        SELECT 1 FROM cl\n        WHERE cl.username_std = ss.username_std\n          AND cl.caption_id   = ss.caption_id\n          AND cl.caption_hash = mm.caption_hash\n      ) THEN 2\n      WHEN ss.price_usd_scheduled IS NOT NULL\n           AND ABS(ss.price_usd_scheduled - mm.price_usd) < 0.01\n           AND mm.sending_ts BETWEEN TIMESTAMP_SUB(ss.logged_ts, INTERVAL 1 DAY)\n                                 AND TIMESTAMP_ADD(ss.logged_ts, INTERVAL 14 DAY) THEN 1\n      ELSE 0\n    END AS match_score,\n    ABS(TIMESTAMP_DIFF(mm.sending_ts, ss.logged_ts, MINUTE)) AS dt_min\n  FROM ss\n  JOIN mm USING (username_std)\n  WHERE (ss.tracking_hash IS NOT NULL AND ss.tracking_hash = mm.caption_hash)\n     OR (ss.caption_id IS NOT NULL AND EXISTS (\n           SELECT 1 FROM cl\n           WHERE cl.username_std = ss.username_std\n             AND cl.caption_id   = ss.caption_id\n             AND cl.caption_hash = mm.caption_hash))\n     OR (ss.price_usd_scheduled IS NOT NULL\n         AND ABS(ss.price_usd_scheduled - mm.price_usd) < 0.01\n         AND mm.sending_ts BETWEEN TIMESTAMP_SUB(ss.logged_ts, INTERVAL 1 DAY)\n                               AND TIMESTAMP_ADD(ss.logged_ts, INTERVAL 14 DAY))\n)\nSELECT\n  username_std,\n  DATE(sending_ts) AS sent_date,\n  scheduler_name,\n  sender,\n  logged_ts,\n  caption_id,\n  was_modified,\n  price_usd_scheduled,\n  sending_ts,\n  hash_msg,\n  price_usd,\n  earnings_usd,\n  sent,\n  viewed,\n  purchased,\n  CASE match_score WHEN 3 THEN 'hash' WHEN 2 THEN 'caption_id' ELSE 'time_price' END AS matched_by\nFROM cand\nQUALIFY ROW_NUMBER() OVER (\n  PARTITION BY username_std, logged_ts, caption_id\n  ORDER BY match_score DESC, dt_min ASC\n) = 1",
+    "useLegacySql": false
+  }
+}

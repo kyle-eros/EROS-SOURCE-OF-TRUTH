@@ -1,0 +1,59 @@
+[
+  {
+    "id": "tvf_weekly_template",
+    "type": "TABLE_VALUED_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-12 13:09:05",
+    "modified": "2025-09-12 13:09:05",
+    "arguments": [
+      {
+        "name": "input_page_key",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      },
+      {
+        "name": "week_start",
+        "dataType": {
+          "typeKind": "DATE"
+        }
+      },
+      {
+        "name": "tz",
+        "dataType": {
+          "typeKind": "STRING"
+        }
+      },
+      {
+        "name": "k_per_day",
+        "dataType": {
+          "typeKind": "INT64"
+        }
+      },
+      {
+        "name": "p_opts",
+        "dataType": {
+          "typeKind": "STRUCT",
+          "structType": {
+            "fields": [
+              {
+                "name": "risk_override",
+                "type": {
+                  "typeKind": "INT64"
+                }
+              },
+              {
+                "name": "force_tier",
+                "type": {
+                  "typeKind": "STRING"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "return_type": null,
+    "definition": "WITH cfg AS (\n    SELECT\n      COALESCE(p_opts.force_tier, i.recommended_tier) AS tier,\n      COALESCE(p_opts.risk_override, 0) AS risk_override,\n      i.recommended_tier,\n      b.or_slump_pct,\n      b.night_owl_idx\n    FROM `of-scheduler-proj.layer_04_semantic.v_page_intensity_7d` i\n    LEFT JOIN `of-scheduler-proj.layer_04_semantic.v_page_behavior_28d` b\n      ON i.page_key = b.page_key\n    WHERE i.page_key = input_page_key\n  ),\n  tier_config AS (\n    SELECT\n      t.anchors_per_day,\n      t.supports_per_day,\n      t.min_spacing_minutes,\n      t.jitter_minutes,\n      c.tier,\n      c.or_slump_pct,\n      c.night_owl_idx\n    FROM cfg c\n    JOIN `of-scheduler-proj.ops_config.tier_slot_packs` t\n      ON c.tier = t.tier\n  ),\n  dow_profile AS (\n    SELECT\n      dow_utc, \n      hour_utc, \n      rps_lift, \n      hour_rank_in_day\n    FROM `of-scheduler-proj.layer_04_semantic.v_page_dow_hod_profile_90d`\n    WHERE page_key = input_page_key\n  ),\n  daily_schedule AS (\n    SELECT\n      DATE_ADD(week_start, INTERVAL day_offset DAY) AS slot_date,\n      EXTRACT(DAYOFWEEK FROM DATE_ADD(week_start, INTERVAL day_offset DAY)) AS dow,\n      tc.anchors_per_day,\n      tc.supports_per_day,\n      tc.min_spacing_minutes,\n      tc.jitter_minutes\n    FROM tier_config tc\n    CROSS JOIN UNNEST(GENERATE_ARRAY(0, 6)) AS day_offset\n  ),\n  top_hours AS (\n    SELECT\n      ds.slot_date, \n      ds.dow, \n      dp.hour_utc, \n      dp.rps_lift, \n      dp.hour_rank_in_day, \n      ds.jitter_minutes,\n      ds.min_spacing_minutes,\n      ds.anchors_per_day,\n      ds.supports_per_day\n    FROM daily_schedule ds\n    JOIN dow_profile dp\n      ON ds.dow = dp.dow_utc\n  ),\n  -- First anchor: best hour of the day\n  first_anchor AS (\n    SELECT\n      slot_date,\n      'ANCHOR' AS slot_type,\n      hour_utc AS slot_hour,\n      CAST(FLOOR(`of-scheduler-proj.layer_05_ml.fn_hash_uniform`(\n            CONCAT(input_page_key, ':', CAST(slot_date AS STRING), ':', CAST(hour_utc AS STRING), ':a1')\n            ) * jitter_minutes) AS INT64) AS jitter_min,\n      rps_lift\n    FROM top_hours\n    WHERE hour_rank_in_day = 1\n  ),\n  -- Second anchor candidates: must be at least 4h away from first anchor\n  second_anchor_candidates AS (\n    SELECT\n      t.slot_date, \n      t.hour_utc, \n      t.rps_lift, \n      t.jitter_minutes, \n      t.hour_rank_in_day,\n      -- Calculate cyclic distance from first anchor\n      LEAST(\n        ABS(t.hour_utc - f.slot_hour), \n        24 - ABS(t.hour_utc - f.slot_hour)\n      ) AS cyclic_hour_dist_from_a1\n    FROM top_hours t\n    JOIN first_anchor f \n      ON t.slot_date = f.slot_date\n    WHERE t.hour_rank_in_day > 1\n      AND t.anchors_per_day >= 2  -- Only create second anchor if tier requires it\n  ),\n  second_anchor AS (\n    SELECT\n      slot_date,\n      'ANCHOR' AS slot_type,\n      hour_utc AS slot_hour,\n      CAST(FLOOR(`of-scheduler-proj.layer_05_ml.fn_hash_uniform`(\n            CONCAT(input_page_key, ':', CAST(slot_date AS STRING), ':', CAST(hour_utc AS STRING), ':a2')\n            ) * jitter_minutes) AS INT64) AS jitter_min,\n      rps_lift\n    FROM (\n      SELECT *,\n             ROW_NUMBER() OVER (PARTITION BY slot_date ORDER BY hour_rank_in_day) AS rn\n      FROM second_anchor_candidates\n      WHERE cyclic_hour_dist_from_a1 >= 4   -- ≥4 hours apart\n    )\n    WHERE rn = 1\n  ),\n  -- Combine anchors (ensuring same column structure)\n  anchor_slots AS (\n    SELECT \n      slot_date,\n      slot_type,\n      slot_hour,\n      jitter_min,\n      rps_lift\n    FROM first_anchor\n    \n    UNION ALL\n    \n    SELECT \n      slot_date,\n      slot_type,\n      slot_hour,\n      jitter_min,\n      rps_lift\n    FROM second_anchor\n  ),\n  -- Support slots: hours after anchors, with deterministic jitter\n  support_slots_raw AS (\n    SELECT\n      t.slot_date,\n      'SUPPORT' AS slot_type,\n      t.hour_utc AS slot_hour,\n      CAST(FLOOR(`of-scheduler-proj.layer_05_ml.fn_hash_uniform`(\n            CONCAT(input_page_key, ':', CAST(t.slot_date AS STRING), ':', CAST(t.hour_utc AS STRING), ':sup')\n            ) * t.jitter_minutes) AS INT64) AS jitter_min,\n      t.rps_lift,\n      ROW_NUMBER() OVER (PARTITION BY t.slot_date ORDER BY t.rps_lift DESC) AS support_rank,\n      t.min_spacing_minutes,\n      t.supports_per_day\n    FROM top_hours t\n    WHERE t.hour_rank_in_day > t.anchors_per_day\n  ),\n  -- Filter supports: keep only top N and those that don't violate min spacing\n  support_slots AS (\n    SELECT \n      slot_date,\n      slot_type,\n      slot_hour,\n      jitter_min,\n      rps_lift\n    FROM (\n      SELECT\n        s.slot_date,\n        s.slot_type,\n        s.slot_hour,\n        s.jitter_min,\n        s.rps_lift,\n        s.support_rank,\n        (s.slot_hour * 60 + s.jitter_min) AS s_min_of_day,\n        s.min_spacing_minutes\n      FROM support_slots_raw s\n      WHERE s.support_rank <= s.supports_per_day\n    ) s\n    WHERE NOT EXISTS (\n      SELECT 1\n      FROM anchor_slots a\n      WHERE a.slot_date = s.slot_date\n        AND LEAST(\n          ABS((s.slot_hour * 60 + s.jitter_min) - (a.slot_hour * 60 + a.jitter_min)),\n          1440 - ABS((s.slot_hour * 60 + s.jitter_min) - (a.slot_hour * 60 + a.jitter_min))\n        ) < s.min_spacing_minutes\n    )\n  ),\n  -- Combine all slots (now with matching columns)\n  all_slots AS (\n    SELECT * FROM anchor_slots\n    UNION ALL\n    SELECT * FROM support_slots\n  ),\n  -- Get ranking candidates from the ML ranker\n  candidates AS (\n    SELECT\n      page_key, \n      caption_id, \n      final_score, \n      score_card\n    FROM `of-scheduler-proj.layer_05_ml.tvf_rank_captions`(\n      input_page_key,\n      TIMESTAMP(week_start),\n      k_per_day * 7,\n      'ucb',\n      NULL  -- Use default 7-day lookback\n    )\n  ),\n  -- Assign candidates to slots with row number for limiting\n  slotted_candidates AS (\n    SELECT\n      s.slot_date,\n      s.slot_type,\n      TIME(s.slot_hour, MOD(s.jitter_min, 60), 0) AS local_time,\n      c.caption_id,\n      c.final_score,\n      ROW_NUMBER() OVER (\n        PARTITION BY s.slot_date, s.slot_type\n        ORDER BY c.final_score DESC, c.caption_id\n      ) AS rn\n    FROM all_slots s\n    CROSS JOIN candidates c\n  )\n  -- Final aggregation with RN-based filtering\n  SELECT\n    slot_date,\n    slot_type,\n    local_time,\n    ARRAY_AGG(\n      STRUCT(caption_id, final_score)\n      ORDER BY final_score DESC, caption_id\n    ) AS caption_pool,\n    STRUCT(\n      0.0 AS baseline_mean,\n      0.0 AS ucb_bonus,\n      0.0 AS cooldown_penalty,\n      0.0 AS novelty,\n      'weekly_planner' AS mode_used,\n      ARRAY<STRING>[] AS reason_codes\n    ) AS score_card\n  FROM slotted_candidates\n  WHERE rn <= k_per_day  -- Filter BEFORE aggregation to avoid LIMIT issue\n  GROUP BY slot_date, slot_type, local_time"
+  }
+]

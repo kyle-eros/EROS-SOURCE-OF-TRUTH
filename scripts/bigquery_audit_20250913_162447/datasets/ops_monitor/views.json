@@ -1,0 +1,399 @@
+[
+  {
+    "id": "dashboard_alerts",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-11 10:41:14",
+    "modified": "2025-09-11 10:41:14",
+    "query": "WITH current_metrics AS (\n  SELECT\n    COUNT(*) AS feature_count,\n    AVG(performance_features.rps_smoothed) AS avg_rps,\n    AVG(performance_features.confidence_score) AS avg_confidence\n  FROM `of-scheduler-proj.layer_05_ml.feature_store`\n  WHERE computed_date = CURRENT_DATE()\n),\nhistorical_metrics AS (\n  SELECT\n    AVG(cnt) AS avg_feature_count,\n    AVG(rps) AS historical_avg_rps,\n    STDDEV(rps) AS historical_stddev_rps\n  FROM (\n    SELECT\n      computed_date,\n      COUNT(*) AS cnt,\n      AVG(performance_features.rps_smoothed) AS rps\n    FROM `of-scheduler-proj.layer_05_ml.feature_store`\n    WHERE computed_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)\n    GROUP BY computed_date\n  )\n)\nSELECT\n  CURRENT_TIMESTAMP() AS alert_time,\n  \n  -- Generate alerts\n  ARRAY_CONCAT(\n    -- Data freshness alert\n    IF(\n      (SELECT TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), MAX(computed_at), HOUR) \n       FROM `of-scheduler-proj.layer_05_ml.feature_store`) > 26,\n      [STRUCT('CRITICAL' AS severity, 'Data Freshness' AS alert_type, 'Feature store not updated in >26 hours' AS message)],\n      []\n    ),\n    \n    -- Volume anomaly alert\n    IF(\n      ABS(cm.feature_count - hm.avg_feature_count) > 3 * SQRT(hm.avg_feature_count),\n      [STRUCT('WARNING' AS severity, 'Volume Anomaly' AS alert_type, \n              CONCAT('Feature count (', CAST(cm.feature_count AS STRING), ') deviates from normal') AS message)],\n      []\n    ),\n    \n    -- Performance degradation alert\n    IF(\n      cm.avg_rps < hm.historical_avg_rps - 2 * hm.historical_stddev_rps,\n      [STRUCT('WARNING' AS severity, 'Performance Degradation' AS alert_type,\n              CONCAT('Average RPS (', CAST(ROUND(cm.avg_rps, 4) AS STRING), ') below normal range') AS message)],\n      []\n    ),\n    \n    -- Low confidence alert\n    IF(\n      cm.avg_confidence < 0.05,\n      [STRUCT('INFO' AS severity, 'Low Confidence' AS alert_type,\n              'Average confidence score below threshold' AS message)],\n      []\n    )\n  ) AS alerts\n  \nFROM current_metrics cm\nCROSS JOIN historical_metrics hm",
+    "schema": [
+      {
+        "name": "alert_time",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "alerts",
+        "type": "RECORD",
+        "mode": "REPEATED",
+        "fields": [
+          {
+            "name": "severity",
+            "type": "STRING"
+          },
+          {
+            "name": "alert_type",
+            "type": "STRING"
+          },
+          {
+            "name": "message",
+            "type": "STRING"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dashboard_data_quality",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-11 10:41:11",
+    "modified": "2025-09-11 10:41:11",
+    "query": "SELECT\n  'Feature Store' AS dataset,\n  COUNT(*) AS total_records,\n  \n  -- Null checks\n  SUM(CASE WHEN caption_id IS NULL THEN 1 ELSE 0 END) AS null_caption_ids,\n  SUM(CASE WHEN performance_features.rps_smoothed IS NULL THEN 1 ELSE 0 END) AS null_rps,\n  \n  -- Range checks\n  SUM(CASE WHEN performance_features.confidence_score < 0 OR performance_features.confidence_score > 1 THEN 1 ELSE 0 END) AS confidence_out_of_range,\n  SUM(CASE WHEN cooldown_features.fatigue_score < 0 OR cooldown_features.fatigue_score > 1 THEN 1 ELSE 0 END) AS fatigue_out_of_range,\n  \n  -- Consistency checks\n  SUM(CASE WHEN performance_features.sends_30d = 0 AND performance_features.rps_30d > 0 THEN 1 ELSE 0 END) AS inconsistent_metrics,\n  \n  -- Overall quality score\n  ROUND(100.0 * (1 - (\n    SUM(CASE WHEN caption_id IS NULL THEN 1 ELSE 0 END) +\n    SUM(CASE WHEN performance_features.confidence_score < 0 OR performance_features.confidence_score > 1 THEN 1 ELSE 0 END)\n  ) / NULLIF(COUNT(*), 0)), 1) AS quality_score_pct\n  \nFROM `of-scheduler-proj.layer_05_ml.feature_store`\nWHERE computed_date = CURRENT_DATE()\n\nUNION ALL\n\nSELECT\n  'Fact Table' AS dataset,\n  COUNT(*) AS total_records,\n  SUM(CASE WHEN caption_key = 'UNKNOWN' THEN 1 ELSE 0 END) AS null_caption_ids,\n  SUM(CASE WHEN revenue_per_send IS NULL THEN 1 ELSE 0 END) AS null_rps,\n  SUM(CASE WHEN messages_purchased > messages_sent THEN 1 ELSE 0 END) AS confidence_out_of_range,\n  0 AS fatigue_out_of_range,\n  SUM(CASE WHEN quality_flag != 'valid' THEN 1 ELSE 0 END) AS inconsistent_metrics,\n  ROUND(100.0 * SUM(CASE WHEN quality_flag = 'valid' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 1) AS quality_score_pct\nFROM `of-scheduler-proj.layer_03_foundation.fact_message_send`\nWHERE send_date = CURRENT_DATE()",
+    "schema": [
+      {
+        "name": "dataset",
+        "type": "STRING"
+      },
+      {
+        "name": "total_records",
+        "type": "INTEGER"
+      },
+      {
+        "name": "null_caption_ids",
+        "type": "INTEGER"
+      },
+      {
+        "name": "null_rps",
+        "type": "INTEGER"
+      },
+      {
+        "name": "confidence_out_of_range",
+        "type": "INTEGER"
+      },
+      {
+        "name": "fatigue_out_of_range",
+        "type": "INTEGER"
+      },
+      {
+        "name": "inconsistent_metrics",
+        "type": "INTEGER"
+      },
+      {
+        "name": "quality_score_pct",
+        "type": "FLOAT"
+      }
+    ]
+  },
+  {
+    "id": "dashboard_exploration_balance",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-11 10:41:07",
+    "modified": "2025-09-11 10:41:07",
+    "query": "WITH exploration_metrics AS (\n  SELECT\n    username_page,\n    COUNT(*) AS total_captions,\n    \n    -- Categorize by exploration status\n    SUM(CASE WHEN performance_features.sends_30d < 10 THEN 1 ELSE 0 END) AS new_captions,\n    SUM(CASE WHEN performance_features.sends_30d BETWEEN 10 AND 50 THEN 1 ELSE 0 END) AS exploring_captions,\n    SUM(CASE WHEN performance_features.sends_30d > 50 THEN 1 ELSE 0 END) AS exploiting_captions,\n    \n    -- Average scores by category\n    AVG(CASE WHEN performance_features.sends_30d < 10 THEN exploration_features.novelty_bonus ELSE NULL END) AS avg_novelty_bonus,\n    AVG(exploration_features.ucb_bonus) AS avg_ucb_bonus\n    \n  FROM `of-scheduler-proj.layer_05_ml.feature_store`\n  WHERE computed_date = CURRENT_DATE()\n  GROUP BY username_page\n)\nSELECT\n  username_page,\n  total_captions,\n  new_captions,\n  exploring_captions,\n  exploiting_captions,\n  \n  -- Percentages\n  ROUND(100.0 * new_captions / NULLIF(total_captions, 0), 1) AS new_pct,\n  ROUND(100.0 * exploring_captions / NULLIF(total_captions, 0), 1) AS exploring_pct,\n  ROUND(100.0 * exploiting_captions / NULLIF(total_captions, 0), 1) AS exploiting_pct,\n  \n  -- Exploration health\n  CASE\n    WHEN new_captions > 0.3 * total_captions THEN 'High Exploration'\n    WHEN new_captions > 0.1 * total_captions THEN 'Balanced'\n    ELSE 'Low Exploration'\n  END AS exploration_status,\n  \n  ROUND(avg_novelty_bonus, 3) AS avg_novelty_bonus,\n  ROUND(avg_ucb_bonus, 3) AS avg_ucb_bonus\n  \nFROM exploration_metrics\nORDER BY total_captions DESC",
+    "schema": [
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "total_captions",
+        "type": "INTEGER"
+      },
+      {
+        "name": "new_captions",
+        "type": "INTEGER"
+      },
+      {
+        "name": "exploring_captions",
+        "type": "INTEGER"
+      },
+      {
+        "name": "exploiting_captions",
+        "type": "INTEGER"
+      },
+      {
+        "name": "new_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "exploring_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "exploiting_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "exploration_status",
+        "type": "STRING"
+      },
+      {
+        "name": "avg_novelty_bonus",
+        "type": "FLOAT"
+      },
+      {
+        "name": "avg_ucb_bonus",
+        "type": "FLOAT"
+      }
+    ]
+  },
+  {
+    "id": "dashboard_hourly_patterns",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-11 10:41:09",
+    "modified": "2025-09-11 10:41:09",
+    "query": "SELECT\n  temporal_features.best_hour AS hour_utc,\n  COUNT(*) AS caption_count,\n  AVG(temporal_features.best_hour_rps) AS avg_best_hour_rps,\n  AVG(performance_features.rps_smoothed) AS avg_overall_rps,\n  \n  -- Performance lift at best hour\n  ROUND(100.0 * (AVG(temporal_features.best_hour_rps) - AVG(performance_features.rps_smoothed)) / \n        NULLIF(AVG(performance_features.rps_smoothed), 0), 1) AS performance_lift_pct\n  \nFROM `of-scheduler-proj.layer_05_ml.feature_store`\nWHERE computed_date = CURRENT_DATE()\nGROUP BY hour_utc\nORDER BY hour_utc",
+    "schema": [
+      {
+        "name": "hour_utc",
+        "type": "INTEGER"
+      },
+      {
+        "name": "caption_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "avg_best_hour_rps",
+        "type": "FLOAT"
+      },
+      {
+        "name": "avg_overall_rps",
+        "type": "FLOAT"
+      },
+      {
+        "name": "performance_lift_pct",
+        "type": "FLOAT"
+      }
+    ]
+  },
+  {
+    "id": "dashboard_ml_performance",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-11 10:41:01",
+    "modified": "2025-09-11 10:41:01",
+    "query": "WITH daily_metrics AS (\n  SELECT\n    computed_date,\n    COUNT(*) AS features_computed,\n    AVG(performance_features.rps_smoothed) AS avg_rps,\n    AVG(performance_features.confidence_score) AS avg_confidence,\n    AVG(CASE WHEN cooldown_features.is_eligible THEN 1.0 ELSE 0.0 END) AS eligibility_rate,\n    APPROX_QUANTILES(composite_scores.base_score, 100)[OFFSET(50)] AS median_score,\n    COUNT(DISTINCT username_page) AS active_pages\n  FROM `of-scheduler-proj.layer_05_ml.feature_store`\n  WHERE computed_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)\n  GROUP BY computed_date\n)\nSELECT\n  computed_date,\n  features_computed,\n  ROUND(avg_rps, 4) AS avg_rps,\n  ROUND(avg_confidence, 3) AS avg_confidence,\n  ROUND(eligibility_rate * 100, 1) AS eligibility_rate_pct,\n  ROUND(median_score, 3) AS median_score,\n  active_pages,\n  \n  -- Trend indicators\n  avg_rps - LAG(avg_rps) OVER (ORDER BY computed_date) AS rps_change,\n  eligibility_rate - LAG(eligibility_rate) OVER (ORDER BY computed_date) AS eligibility_change\n  \nFROM daily_metrics\nORDER BY computed_date DESC",
+    "schema": [
+      {
+        "name": "computed_date",
+        "type": "DATE"
+      },
+      {
+        "name": "features_computed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "avg_rps",
+        "type": "FLOAT"
+      },
+      {
+        "name": "avg_confidence",
+        "type": "FLOAT"
+      },
+      {
+        "name": "eligibility_rate_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "median_score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "active_pages",
+        "type": "INTEGER"
+      },
+      {
+        "name": "rps_change",
+        "type": "FLOAT"
+      },
+      {
+        "name": "eligibility_change",
+        "type": "FLOAT"
+      }
+    ]
+  },
+  {
+    "id": "dashboard_system_health",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-11 10:40:58",
+    "modified": "2025-09-11 10:40:58",
+    "query": "SELECT\n  CURRENT_TIMESTAMP() AS check_time,\n  \n  -- Overall health score (0-100)\n  CAST(\n    (CASE WHEN freshness.feature_store_age_hours < 26 THEN 25 ELSE 0 END) +\n    (CASE WHEN quality.eligible_rate > 0.3 THEN 25 ELSE 15 END) +\n    (CASE WHEN volume.daily_sends > 100 THEN 25 ELSE 15 END) +\n    (CASE WHEN performance.avg_confidence > 0.05 THEN 25 ELSE 15 END)\n  AS INT64) AS health_score,\n  \n  -- Component statuses\n  freshness.feature_store_age_hours,\n  quality.eligible_rate,\n  volume.daily_sends,\n  performance.avg_confidence,\n  performance.avg_rps,\n  \n  -- Alert status\n  CASE\n    WHEN freshness.feature_store_age_hours > 48 THEN 'CRITICAL - Stale Data'\n    WHEN quality.eligible_rate < 0.1 THEN 'WARNING - Low Eligibility'\n    WHEN volume.daily_sends < 10 THEN 'WARNING - Low Volume'\n    ELSE 'HEALTHY'\n  END AS alert_status\n  \nFROM (\n  -- Data freshness\n  SELECT \n    TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), MAX(computed_at), HOUR) AS feature_store_age_hours\n  FROM `of-scheduler-proj.layer_05_ml.feature_store`\n) freshness\nCROSS JOIN (\n  -- Quality metrics\n  SELECT\n    AVG(CASE WHEN cooldown_features.is_eligible THEN 1.0 ELSE 0.0 END) AS eligible_rate\n  FROM `of-scheduler-proj.layer_05_ml.feature_store`\n  WHERE computed_date = CURRENT_DATE()\n) quality\nCROSS JOIN (\n  -- Volume metrics\n  SELECT\n    COUNT(*) AS daily_sends\n  FROM `of-scheduler-proj.layer_03_foundation.fact_message_send`\n  WHERE send_date = CURRENT_DATE()\n) volume\nCROSS JOIN (\n  -- Performance metrics\n  SELECT\n    AVG(performance_features.confidence_score) AS avg_confidence,\n    AVG(performance_features.rps_smoothed) AS avg_rps\n  FROM `of-scheduler-proj.layer_05_ml.feature_store`\n  WHERE computed_date = CURRENT_DATE()\n) performance",
+    "schema": [
+      {
+        "name": "check_time",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "health_score",
+        "type": "INTEGER"
+      },
+      {
+        "name": "feature_store_age_hours",
+        "type": "INTEGER"
+      },
+      {
+        "name": "eligible_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "daily_sends",
+        "type": "INTEGER"
+      },
+      {
+        "name": "avg_confidence",
+        "type": "FLOAT"
+      },
+      {
+        "name": "avg_rps",
+        "type": "FLOAT"
+      },
+      {
+        "name": "alert_status",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "dashboard_top_captions",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-11 10:41:04",
+    "modified": "2025-09-11 10:41:04",
+    "query": "SELECT\n  caption_id,\n  username_page,\n  caption_category,\n  \n  -- Performance metrics\n  ROUND(performance_features.rps_smoothed, 4) AS rps,\n  ROUND(performance_features.confidence_score, 3) AS confidence,\n  performance_features.sends_30d AS recent_sends,\n  \n  -- Ranking\n  RANK() OVER (ORDER BY performance_features.rps_smoothed DESC) AS rps_rank,\n  RANK() OVER (ORDER BY performance_features.confidence_score DESC) AS confidence_rank,\n  RANK() OVER (ORDER BY composite_scores.base_score DESC) AS overall_rank,\n  \n  -- Status\n  CASE\n    WHEN cooldown_features.is_eligible THEN 'Eligible'\n    WHEN cooldown_features.fatigue_score > 0.8 THEN 'Fatigued'\n    ELSE 'Cooling Down'\n  END AS status,\n  \n  temporal_features.hours_since_use AS hours_since_last_use\n  \nFROM `of-scheduler-proj.layer_05_ml.feature_store`\nWHERE computed_date = CURRENT_DATE()\nORDER BY overall_rank\nLIMIT 100",
+    "schema": [
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_category",
+        "type": "STRING"
+      },
+      {
+        "name": "rps",
+        "type": "FLOAT"
+      },
+      {
+        "name": "confidence",
+        "type": "FLOAT"
+      },
+      {
+        "name": "recent_sends",
+        "type": "INTEGER"
+      },
+      {
+        "name": "rps_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "confidence_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "overall_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "status",
+        "type": "STRING"
+      },
+      {
+        "name": "hours_since_last_use",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "gmail_dedup_check",
+    "type": "VIEW",
+    "description": "Tracks deduplication effectiveness",
+    "created": "2025-09-12 02:11:33",
+    "modified": "2025-09-12 02:11:33",
+    "query": "WITH normalized AS (\n  SELECT *\n  FROM `of-scheduler-proj.layer_02_staging.fn_gmail_events_normalized`(\n    DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY),\n    CURRENT_DATE()\n  )\n)\nSELECT\n  ingestion_date,\n  COUNT(*) AS total_rows,\n  COUNT(DISTINCT CONCAT(caption_hash, '|', Sender, '|', CAST(message_sent_date AS STRING))) AS unique_keys,\n  COUNT(*) - COUNT(DISTINCT CONCAT(caption_hash, '|', Sender, '|', CAST(message_sent_date AS STRING))) AS duplicates_removed\nFROM normalized\nGROUP BY 1\nORDER BY 1 DESC",
+    "schema": [
+      {
+        "name": "ingestion_date",
+        "type": "DATE"
+      },
+      {
+        "name": "total_rows",
+        "type": "INTEGER"
+      },
+      {
+        "name": "unique_keys",
+        "type": "INTEGER"
+      },
+      {
+        "name": "duplicates_removed",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "gmail_etl_quality",
+    "type": "VIEW",
+    "description": "Data quality metrics for Gmail ETL pipeline",
+    "created": "2025-09-12 02:11:20",
+    "modified": "2025-09-12 02:11:20",
+    "query": "WITH normalized AS (\n  SELECT *\n  FROM `of-scheduler-proj.layer_02_staging.fn_gmail_events_normalized`(\n    DATE_SUB(CURRENT_DATE(), INTERVAL 14 DAY),\n    CURRENT_DATE()\n  )\n),\ndaily AS (\n  SELECT\n    ingestion_date,\n    COUNT(*) AS rows_ingested,\n    COUNT(DISTINCT ingestion_run_id) AS unique_runs,\n    COUNT(DISTINCT message_id) AS unique_messages,\n\n    -- ideally 0\n    COUNTIF(message_id IS NULL)      AS cnt_message_id_null,\n    COUNTIF(source_file IS NULL)     AS cnt_source_file_null,\n    COUNTIF(message_sent_ts IS NULL) AS cnt_event_time_null,\n\n    -- sanity\n    COUNTIF(message_sent_date < DATE '2018-01-01')         AS cnt_date_too_old,\n    COUNTIF(message_sent_date > CURRENT_DATE())            AS cnt_date_future,\n\n    -- parsing failures (NOW USING RAW FIELDS)\n    COUNTIF(price_raw IS NOT NULL AND price_usd IS NULL)   AS cnt_price_parse_fail,\n    COUNTIF(earnings_raw IS NOT NULL AND revenue_usd IS NULL) AS cnt_revenue_parse_fail,\n\n    -- volumes\n    SUM(sent_count) AS total_messages_sent,\n    SUM(revenue_usd) AS total_revenue,\n    AVG(view_rate)   AS avg_view_rate\n  FROM normalized\n  GROUP BY 1\n)\nSELECT\n  *,\n  CAST(100 * (1 - (\n    cnt_message_id_null + cnt_source_file_null + cnt_event_time_null +\n    cnt_price_parse_fail + cnt_revenue_parse_fail\n  ) / NULLIF(rows_ingested, 0)) AS INT64) AS quality_score\nFROM daily\nORDER BY ingestion_date DESC",
+    "schema": [
+      {
+        "name": "ingestion_date",
+        "type": "DATE"
+      },
+      {
+        "name": "rows_ingested",
+        "type": "INTEGER"
+      },
+      {
+        "name": "unique_runs",
+        "type": "INTEGER"
+      },
+      {
+        "name": "unique_messages",
+        "type": "INTEGER"
+      },
+      {
+        "name": "cnt_message_id_null",
+        "type": "INTEGER"
+      },
+      {
+        "name": "cnt_source_file_null",
+        "type": "INTEGER"
+      },
+      {
+        "name": "cnt_event_time_null",
+        "type": "INTEGER"
+      },
+      {
+        "name": "cnt_date_too_old",
+        "type": "INTEGER"
+      },
+      {
+        "name": "cnt_date_future",
+        "type": "INTEGER"
+      },
+      {
+        "name": "cnt_price_parse_fail",
+        "type": "INTEGER"
+      },
+      {
+        "name": "cnt_revenue_parse_fail",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_messages_sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_revenue",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "avg_view_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "quality_score",
+        "type": "INTEGER"
+      }
+    ]
+  }
+]

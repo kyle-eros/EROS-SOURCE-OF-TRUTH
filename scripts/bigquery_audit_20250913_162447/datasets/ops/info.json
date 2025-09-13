@@ -1,0 +1,33 @@
+{
+  "id": "ops",
+  "description": "",
+  "location": "US",
+  "created": "2025-09-04 02:05:47",
+  "modified": "2025-09-05 08:33:51",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "groupByEmail": "eros-schedulers-bq@erosops.com"
+    },
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "groupByEmail": "eros-schedulers-bq@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

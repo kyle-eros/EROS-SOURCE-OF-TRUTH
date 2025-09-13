@@ -1,0 +1,28 @@
+# Google Cloud SDKs
+google-api-python-client==2.137.0
+google-auth==2.33.0
+google-auth-httplib2==0.2.0
+google-cloud-bigquery==3.25.0
+google-cloud-storage==2.18.2
+
+# Data processing
+pandas==2.2.2
+numpy==1.26.4
+pyarrow==17.0.0  # Updated for better BigQuery compatibility
+
+# Excel processing
+openpyxl==3.1.2  # Required for reading .xlsx files
+xlrd==2.0.1  # Fallback for reading older Excel formats
+
+# Web scraping and downloading
+requests==2.32.3
+beautifulsoup4==4.12.3
+lxml==5.1.0  # Updated version
+
+# Configuration
+PyYAML==6.0.1
+
+# Additional dependencies for our modules
+python-dateutil==2.8.2  # For better date parsing
+pytz==2024.1  # Timezone handling
+urllib3==2.2.0  # URL parsing utilities

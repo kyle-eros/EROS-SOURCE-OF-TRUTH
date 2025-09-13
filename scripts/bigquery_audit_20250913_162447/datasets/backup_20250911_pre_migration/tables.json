@@ -1,0 +1,214 @@
+[
+  {
+    "id": "caption_overrides",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 08:48:29",
+    "modified": "2025-09-11 08:48:29",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "override_timestamp",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "scheduler_email",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "slot_time",
+        "type": "STRING"
+      },
+      {
+        "name": "original_caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "override_caption_id",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "override_reason",
+        "type": "STRING"
+      },
+      {
+        "name": "slot_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "performance_tracked",
+        "type": "BOOLEAN",
+        "defaultValueExpression": "FALSE"
+      }
+    ]
+  },
+  {
+    "id": "explore_exploit_config_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 08:48:47",
+    "modified": "2025-09-11 08:48:47",
+    "size_bytes": 51,
+    "num_rows": 1,
+    "schema": [
+      {
+        "name": "config_key",
+        "type": "STRING"
+      },
+      {
+        "name": "min_obs_for_exploit",
+        "type": "INTEGER"
+      },
+      {
+        "name": "max_explorer_share",
+        "type": "FLOAT"
+      },
+      {
+        "name": "cold_start_days",
+        "type": "INTEGER"
+      },
+      {
+        "name": "thompson_sampling_enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "ucb_enabled",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "decay_factor",
+        "type": "FLOAT"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "ml_ranking_weights_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 08:48:42",
+    "modified": "2025-09-11 08:48:42",
+    "size_bytes": 418,
+    "num_rows": 4,
+    "schema": [
+      {
+        "name": "page_state",
+        "type": "STRING"
+      },
+      {
+        "name": "w_rps",
+        "type": "FLOAT"
+      },
+      {
+        "name": "w_open",
+        "type": "FLOAT"
+      },
+      {
+        "name": "w_buy",
+        "type": "FLOAT"
+      },
+      {
+        "name": "w_dowhod",
+        "type": "FLOAT"
+      },
+      {
+        "name": "w_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "w_novelty",
+        "type": "FLOAT"
+      },
+      {
+        "name": "w_momentum",
+        "type": "FLOAT"
+      },
+      {
+        "name": "ucb_c",
+        "type": "FLOAT"
+      },
+      {
+        "name": "epsilon",
+        "type": "FLOAT"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "updated_by",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "page_type_authority_snap",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 08:48:23",
+    "modified": "2025-09-11 08:48:23",
+    "size_bytes": 1492,
+    "num_rows": 56,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "page_type",
+        "type": "STRING"
+      },
+      {
+        "name": "decided_as_of",
+        "type": "DATE"
+      }
+    ]
+  },
+  {
+    "id": "scheduler_assignments_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 08:48:26",
+    "modified": "2025-09-11 08:48:26",
+    "size_bytes": 205,
+    "num_rows": 3,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduler_name",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduler_email",
+        "type": "STRING"
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  }
+]

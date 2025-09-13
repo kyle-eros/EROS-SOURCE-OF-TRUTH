@@ -1,0 +1,134 @@
+[
+  {
+    "id": "v_daily_brief_user_flat",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-03 05:33:33",
+    "modified": "2025-09-03 05:33:33",
+    "query": "WITH me AS (\n  SELECT scheduler_name, IFNULL(can_view_all, FALSE) AS can_view_all\n  FROM `of-scheduler-proj.core.scheduler_user_map`\n  WHERE LOWER(email) = LOWER(SESSION_USER())\n  LIMIT 1\n)\nSELECT\n  d.assigned_scheduler,\n  d.username_std,\n  d.page_state,\n  d.state_note,\n  d.price_band_suggested.p25 AS price_p25,\n  d.price_band_suggested.p50 AS price_p50,\n  d.price_band_suggested.p75 AS price_p75,\n  d.best_hours_local[SAFE_OFFSET(0)] AS hod1,\n  d.best_hours_local[SAFE_OFFSET(1)] AS hod2,\n  d.best_hours_local[SAFE_OFFSET(2)] AS hod3,\n  d.best_hours_local[SAFE_OFFSET(3)] AS hod4,\n  d.best_hours_local[SAFE_OFFSET(4)] AS hod5,\n  cap.caption_id,\n  cap.caption_text,\n  cap.caption_type,\n  cap.explicitness,\n  cap.theme_tags,\n  cap.hist_revenue,\n  pos + 1 AS caption_rank\nFROM `of-scheduler-proj.mart.v_daily_brief_today` d\nJOIN me ON me.can_view_all = TRUE OR d.assigned_scheduler = me.scheduler_name\nLEFT JOIN UNNEST(d.caption_suggestions) AS cap WITH OFFSET AS pos",
+    "schema": [
+      {
+        "name": "assigned_scheduler",
+        "type": "STRING"
+      },
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "page_state",
+        "type": "STRING"
+      },
+      {
+        "name": "state_note",
+        "type": "STRING"
+      },
+      {
+        "name": "price_p25",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "price_p50",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "price_p75",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "hod1",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod2",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod3",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod4",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod5",
+        "type": "INTEGER"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_type",
+        "type": "STRING"
+      },
+      {
+        "name": "explicitness",
+        "type": "STRING"
+      },
+      {
+        "name": "theme_tags",
+        "type": "STRING"
+      },
+      {
+        "name": "hist_revenue",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "caption_rank",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "v_my_day_slots_all_v1",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-07 02:01:06",
+    "modified": "2025-09-07 02:01:06",
+    "query": "WITH tz AS (\n  -- tz per page; page_dim has username_std + tz\n  SELECT username_std, COALESCE(tz,'UTC') AS tz\n  FROM `of-scheduler-proj.core.page_dim`\n),\nmap AS (\n  -- authoritative username_page (if your v_pages exists)\n  SELECT username_std, ANY_VALUE(username_page) AS username_page\n  FROM `of-scheduler-proj.core.v_pages`\n  GROUP BY username_std\n),\n/* ---------- PPV anchors (today) ---------- */\nppv AS (\n  SELECT\n    t.username_std,\n    COALESCE(m.username_page, CONCAT(LOWER(t.username_std),'__main')) AS username_page,\n    'ppv' AS slot_kind,\n    'MM'  AS channel,  -- DM\n    DATETIME(t.date_local, TIME(t.hod_local,0,0)) AS local_dt,\n    CAST(t.price_usd AS FLOAT64) AS price_usd,\n    t.slot_rank\n  FROM `of-scheduler-proj.mart.v_weekly_template_7d_pages_final` t\n  JOIN tz z ON z.username_std = t.username_std\n  LEFT JOIN map m ON m.username_std = t.username_std\n  WHERE DATE(DATETIME(t.date_local, TIME(t.hod_local,0,0))) = CURRENT_DATE(z.tz)\n),\n/* ---------- PPV follow-ups (today) ---------- */\nfub AS (\n  SELECT\n    f.username_std,\n    COALESCE(m.username_page, CONCAT(LOWER(f.username_std),'__main')) AS username_page,\n    'ppv_followup' AS slot_kind,\n    'MM'           AS channel,      -- DM\n    f.planned_local_datetime        AS local_dt,\n    NULL          AS price_usd,\n    NULL          AS slot_rank\n  FROM `of-scheduler-proj.mart.v_ppv_followup_bumps_v1` f\n  JOIN tz  z ON z.username_std = f.username_std\n  LEFT JOIN map m ON m.username_std = f.username_std\n  WHERE DATE(f.planned_local_datetime) = CURRENT_DATE(z.tz)\n),\n/* ---------- Non-DM (today): drip MM/Wall, renewals (paid only), link drops ---------- */\nnon_dm AS (\n  SELECT\n    n.username_std,\n    COALESCE(m.username_page, CONCAT(LOWER(n.username_std),'__main')) AS username_page,\n    n.slot_kind,                                              -- 'drip_mm' | 'drip_wall' | 'renewal' | 'link_drop'\n    CASE WHEN n.slot_kind IN ('drip_mm','renewal') THEN 'MM' ELSE 'Wall' END AS channel,\n    n.planned_local_datetime AS local_dt,\n    NULL AS price_usd,\n    NULL AS slot_rank\n  FROM `of-scheduler-proj.mart.v_non_dm_windows_7d_v1` n\n  JOIN tz  z ON z.username_std = n.username_std\n  LEFT JOIN map m ON m.username_std = n.username_std\n  WHERE DATE(n.planned_local_datetime) = CURRENT_DATE(z.tz)\n)\n/* ---------- Final union in Sheet-friendly shape ---------- */\nSELECT\n  x.username_std,\n  x.username_page,\n  x.slot_kind,\n  x.channel,\n  x.local_dt,\n  EXTRACT(HOUR FROM x.local_dt) AS hod,\n  x.price_usd,\n  x.slot_rank,\n  FORMAT_DATETIME('%a %b %d, %I:%M %p', x.local_dt) AS slot_local_human\nFROM (\n  SELECT * FROM ppv\n  UNION ALL SELECT * FROM fub\n  UNION ALL SELECT * FROM non_dm\n) x\nORDER BY x.username_std, x.local_dt, x.slot_kind",
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "slot_kind",
+        "type": "STRING"
+      },
+      {
+        "name": "channel",
+        "type": "STRING"
+      },
+      {
+        "name": "local_dt",
+        "type": "DATETIME"
+      },
+      {
+        "name": "hod",
+        "type": "INTEGER"
+      },
+      {
+        "name": "price_usd",
+        "type": "FLOAT"
+      },
+      {
+        "name": "slot_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "slot_local_human",
+        "type": "STRING"
+      }
+    ]
+  }
+]

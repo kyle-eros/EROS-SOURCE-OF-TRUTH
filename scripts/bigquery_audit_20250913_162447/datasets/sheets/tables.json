@@ -1,0 +1,160 @@
+[
+  {
+    "id": "backup_log_20250909_212308",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-10 03:23:41",
+    "modified": "2025-09-10 03:23:43",
+    "size_bytes": 206,
+    "num_rows": 3,
+    "schema": [
+      {
+        "name": "timestamp",
+        "type": "TIMESTAMP",
+        "defaultValueExpression": "CURRENT_TIMESTAMP()"
+      },
+      {
+        "name": "view_name",
+        "type": "STRING"
+      },
+      {
+        "name": "backup_status",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "v_my_day_slots_all_v1__bak_20250909_212308",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-10 03:23:39",
+    "modified": "2025-09-10 03:23:39",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "assigned_scheduler",
+        "type": "STRING"
+      },
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "page_state",
+        "type": "STRING"
+      },
+      {
+        "name": "state_note",
+        "type": "STRING"
+      },
+      {
+        "name": "price_p25",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "price_p50",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "price_p75",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "hod1",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod2",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod3",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod4",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod5",
+        "type": "INTEGER"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_type",
+        "type": "STRING"
+      },
+      {
+        "name": "explicitness",
+        "type": "STRING"
+      },
+      {
+        "name": "theme_tags",
+        "type": "STRING"
+      },
+      {
+        "name": "hist_revenue",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "caption_rank",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "v_my_day_slots_all_v1__bak_20250909_215137",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-10 03:52:27",
+    "modified": "2025-09-10 03:52:27",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "slot_kind",
+        "type": "STRING"
+      },
+      {
+        "name": "channel",
+        "type": "STRING"
+      },
+      {
+        "name": "local_dt",
+        "type": "DATETIME"
+      },
+      {
+        "name": "hod",
+        "type": "INTEGER"
+      },
+      {
+        "name": "price_usd",
+        "type": "FLOAT"
+      },
+      {
+        "name": "slot_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "slot_local_human",
+        "type": "STRING"
+      }
+    ]
+  }
+]

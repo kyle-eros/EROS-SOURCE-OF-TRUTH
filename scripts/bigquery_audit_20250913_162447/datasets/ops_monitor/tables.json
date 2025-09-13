@@ -1,0 +1,37 @@
+[
+  {
+    "id": "pipeline_runs",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 10:40:57",
+    "modified": "2025-09-11 10:40:57",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "run_timestamp",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "pipeline_name",
+        "type": "STRING"
+      },
+      {
+        "name": "status",
+        "type": "STRING"
+      },
+      {
+        "name": "records_processed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "duration_seconds",
+        "type": "INTEGER"
+      },
+      {
+        "name": "trigger_type",
+        "type": "STRING"
+      }
+    ]
+  }
+]

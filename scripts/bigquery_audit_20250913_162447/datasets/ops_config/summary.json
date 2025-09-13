@@ -1,0 +1,9 @@
+{
+  "dataset_id": "ops_config",
+  "counts": {
+    "tables": 11,
+    "views": 7,
+    "materialized_views": 0,
+    "routines": 0
+  }
+}

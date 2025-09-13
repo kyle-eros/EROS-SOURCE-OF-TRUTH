@@ -1,0 +1,42 @@
+[
+  {
+    "id": "fn_gmail_events_last_n_days",
+    "type": "TABLE_VALUED_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-12 02:32:57",
+    "modified": "2025-09-12 02:32:57",
+    "arguments": [
+      {
+        "name": "n_days",
+        "dataType": {
+          "typeKind": "INT64"
+        }
+      }
+    ],
+    "return_type": null,
+    "definition": "SELECT *\n  FROM `of-scheduler-proj.layer_02_staging.fn_gmail_events_normalized`(\n    DATE_SUB(CURRENT_DATE(), INTERVAL n_days DAY), \n    CURRENT_DATE()\n  )"
+  },
+  {
+    "id": "fn_gmail_events_normalized",
+    "type": "TABLE_VALUED_FUNCTION",
+    "language": "SQL",
+    "created": "2025-09-12 02:03:26",
+    "modified": "2025-09-12 02:03:26",
+    "arguments": [
+      {
+        "name": "ingestion_start",
+        "dataType": {
+          "typeKind": "DATE"
+        }
+      },
+      {
+        "name": "ingestion_end",
+        "dataType": {
+          "typeKind": "DATE"
+        }
+      }
+    ],
+    "return_type": null,
+    "definition": "WITH base AS (\n    SELECT *\n    FROM `of-scheduler-proj.layer_02_staging.gmail_events_staging`\n    WHERE ingestion_date BETWEEN ingestion_start AND ingestion_end\n  ),\n\n  -- 2) Enrich (preserve ingestion_date for pruning)\n  enriched AS (\n    SELECT\n      -- lineage\n      ingestion_run_id,\n      ingested_at,\n      ingestion_date,\n      message_id,\n      source_file,\n      Sender,\n\n      -- RAW fields for DQ comparison\n      Price    AS price_raw,\n      Earnings AS earnings_raw,\n\n      -- caption cleanup + hash\n      Message AS caption_text_raw,\n      REGEXP_REPLACE(Message, r'<[^>]*>', '') AS caption_text_clean,\n      LOWER(\n        REGEXP_REPLACE(\n          REGEXP_REPLACE(IFNULL(Message, ''), r'<[^>]*>', ''),\n          r'\\s+', ' '\n        )\n      ) AS caption_text_norm,\n      TO_HEX(SHA256(\n        LOWER(\n          REGEXP_REPLACE(\n            REGEXP_REPLACE(IFNULL(Message, ''), r'<[^>]*>', ''),\n            r'\\s+', ' '\n          )\n        )\n      )) AS caption_hash,\n\n      -- username heuristic\n      COALESCE(\n        REGEXP_EXTRACT(source_file, r'/([^/]+)_\\d{4}-\\d{2}-\\d{2}\\.xlsx$'),\n        REGEXP_EXTRACT(source_file, r'([^/_]+)'),\n        Sender,\n        'unknown'\n      ) AS username_std,\n\n      -- numerics (parsed once)\n      SAFE_CAST(\n        REGEXP_REPLACE(REGEXP_REPLACE(IFNULL(Price, '0'), r'[\\$,]', ''), r'^\\((.+)\\)$', '-\\\\1') AS NUMERIC\n      ) AS price_usd,\n      SAFE_CAST(\n        REGEXP_REPLACE(REGEXP_REPLACE(IFNULL(Earnings, '0'), r'[\\$,]', ''), r'^\\((.+)\\)$', '-\\\\1') AS NUMERIC\n      ) AS revenue_usd,\n\n      -- counts\n      IFNULL(Sent, 0)       AS sent_count,\n      IFNULL(Viewed, 0)     AS viewed_count,\n      IFNULL(Purchased, 0)  AS purchased_count,\n\n      -- event time (from ETL)\n      message_sent_ts,\n      message_sent_date,\n      EXTRACT(HOUR FROM message_sent_ts) AS hour_utc,\n      EXTRACT(DAYOFWEEK FROM message_sent_date) AS day_of_week,\n      FORMAT_DATE('%Y-%m', message_sent_date) AS year_month,\n\n      -- categories\n      CASE\n        WHEN SAFE_CAST(REGEXP_REPLACE(IFNULL(Price, '0'), r'[^0-9.]', '') AS NUMERIC) = 0 THEN 'free'\n        WHEN SAFE_CAST(REGEXP_REPLACE(IFNULL(Price, '0'), r'[^0-9.]', '') AS NUMERIC) < 5 THEN 'low'\n        WHEN SAFE_CAST(REGEXP_REPLACE(IFNULL(Price, '0'), r'[^0-9.]', '') AS NUMERIC) < 20 THEN 'medium'\n        ELSE 'high'\n      END AS price_tier,\n      CASE\n        WHEN Sent < 100 THEN 'small'\n        WHEN Sent < 1000 THEN 'medium'\n        WHEN Sent < 10000 THEN 'large'\n        ELSE 'massive'\n      END AS send_size_category\n    FROM base\n  ),\n\n  -- 3) Calculate rates using parsed values\n  with_metrics AS (\n    SELECT\n      *,\n      -- rates\n      SAFE_DIVIDE(viewed_count, sent_count)     AS view_rate,\n      SAFE_DIVIDE(purchased_count, sent_count)  AS purchase_rate,\n      SAFE_DIVIDE(purchased_count, viewed_count) AS purchase_given_view,\n      SAFE_DIVIDE(revenue_usd, NULLIF(sent_count, 0)) AS revenue_per_send  -- USE PARSED VALUE\n    FROM enriched\n  ),\n\n  -- 4) Deterministic dedup by (caption, sender, event-day)\n  deduped AS (\n    SELECT * EXCEPT(rn)\n    FROM (\n      SELECT\n        *,\n        ROW_NUMBER() OVER (\n          PARTITION BY caption_hash, Sender, message_sent_date\n          ORDER BY message_sent_ts DESC, message_id DESC, ingested_at DESC\n        ) AS rn\n      FROM with_metrics\n    )\n    WHERE rn = 1\n  )\n  SELECT * FROM deduped"
+  }
+]

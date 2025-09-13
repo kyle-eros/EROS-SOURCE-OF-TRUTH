@@ -1,0 +1,43 @@
+{
+  "id": "mart",
+  "description": "Scheduler-facing analytics & helpers",
+  "location": "US",
+  "created": "2025-09-02 22:41:51",
+  "modified": "2025-09-05 08:33:44",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "groupByEmail": "eros-schedulers-bq@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    },
+    {
+      "view": {
+        "projectId": "of-scheduler-proj",
+        "datasetId": "ops",
+        "tableId": "v_plan_export_next_7d"
+      }
+    },
+    {
+      "view": {
+        "projectId": "of-scheduler-proj",
+        "datasetId": "ops",
+        "tableId": "v_ops_plan_summary"
+      }
+    }
+  ]
+}

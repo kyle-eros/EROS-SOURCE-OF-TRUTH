@@ -1,0 +1,25 @@
+{
+  "id": "backup_20250911_pre_migration",
+  "description": "Pre-migration backup created on 2025-09-11",
+  "location": "US",
+  "created": "2025-09-11 08:48:10",
+  "modified": "2025-09-11 08:48:10",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

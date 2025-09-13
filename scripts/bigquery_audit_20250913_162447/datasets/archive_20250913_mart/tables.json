@@ -1,0 +1,457 @@
+[
+  {
+    "id": "caption_bank_latest",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:42:29",
+    "modified": "2025-09-13 04:42:29",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_category",
+        "type": "STRING"
+      },
+      {
+        "name": "explicitness",
+        "type": "STRING"
+      },
+      {
+        "name": "theme_tags",
+        "type": "STRING",
+        "mode": "REPEATED"
+      },
+      {
+        "name": "username_std",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "caption_rank_next24_v3_tbl",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:42:32",
+    "modified": "2025-09-13 04:42:32",
+    "size_bytes": 253546764,
+    "num_rows": 539870,
+    "schema": [
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "slot_dt_local",
+        "type": "DATETIME"
+      },
+      {
+        "name": "dow",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod",
+        "type": "INTEGER"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "p_buy_eb",
+        "type": "FLOAT"
+      },
+      {
+        "name": "rps_eb_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "se_bonus",
+        "type": "FLOAT"
+      },
+      {
+        "name": "style_score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "is_cooldown_ok",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "score_final",
+        "type": "FLOAT"
+      },
+      {
+        "name": "rn",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "caption_scores_7d",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:42:36",
+    "modified": "2025-09-13 04:42:36",
+    "size_bytes": 7203624,
+    "num_rows": 19485,
+    "schema": [
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "date_local",
+        "type": "DATE"
+      },
+      {
+        "name": "hod_local",
+        "type": "INTEGER"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "theme_tags",
+        "type": "STRING"
+      },
+      {
+        "name": "confidence_score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "rnk",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "daily_quota_policy_legacy_snapshot_v3",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:42:40",
+    "modified": "2025-09-13 04:42:40",
+    "size_bytes": 22778,
+    "num_rows": 378,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "assigned_scheduler",
+        "type": "STRING"
+      },
+      {
+        "name": "tz",
+        "type": "STRING"
+      },
+      {
+        "name": "dow",
+        "type": "INTEGER"
+      },
+      {
+        "name": "ppv_quota",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hour_pool",
+        "type": "INTEGER"
+      },
+      {
+        "name": "is_burst_dow",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "daily_quota_policy_legacy_snapshot_v3_backup_20250909",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:42:45",
+    "modified": "2025-09-13 04:42:45",
+    "size_bytes": 22778,
+    "num_rows": 378,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "assigned_scheduler",
+        "type": "STRING"
+      },
+      {
+        "name": "tz",
+        "type": "STRING"
+      },
+      {
+        "name": "dow",
+        "type": "INTEGER"
+      },
+      {
+        "name": "ppv_quota",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hour_pool",
+        "type": "INTEGER"
+      },
+      {
+        "name": "is_burst_dow",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "gmail_messages_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:42:48",
+    "modified": "2025-09-13 04:42:48",
+    "size_bytes": 3064418,
+    "num_rows": 12669,
+    "schema": [
+      {
+        "name": "message_uid",
+        "type": "STRING"
+      },
+      {
+        "name": "sending_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "Sender",
+        "type": "STRING"
+      },
+      {
+        "name": "Status",
+        "type": "STRING"
+      },
+      {
+        "name": "Price",
+        "type": "STRING"
+      },
+      {
+        "name": "Sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Earnings",
+        "type": "FLOAT"
+      },
+      {
+        "name": "Withdrawn_by",
+        "type": "STRING"
+      },
+      {
+        "name": "message_id",
+        "type": "STRING"
+      },
+      {
+        "name": "loaded_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "source_file",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "message_facts_by_page_365d",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:42:53",
+    "modified": "2025-09-13 04:42:53",
+    "size_bytes": 32407,
+    "num_rows": 96,
+    "schema": [
+      {
+        "name": "message_send_key",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_key",
+        "type": "STRING"
+      },
+      {
+        "name": "creator_key",
+        "type": "STRING"
+      },
+      {
+        "name": "send_timestamp",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "send_date",
+        "type": "DATE"
+      },
+      {
+        "name": "time_of_day_utc",
+        "type": "INTEGER"
+      },
+      {
+        "name": "day_of_week",
+        "type": "INTEGER"
+      },
+      {
+        "name": "week_of_year",
+        "type": "INTEGER"
+      },
+      {
+        "name": "month_of_year",
+        "type": "INTEGER"
+      },
+      {
+        "name": "messages_sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "messages_viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "messages_purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "view_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "purchase_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "conversion_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "price_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "gross_revenue_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "net_revenue_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "revenue_per_send",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "revenue_per_purchase",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "response_metrics",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "time_to_first_view_seconds",
+            "type": "INTEGER"
+          },
+          {
+            "name": "time_to_first_purchase_seconds",
+            "type": "INTEGER"
+          },
+          {
+            "name": "response_category",
+            "type": "STRING"
+          },
+          {
+            "name": "bounce_rate",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "scheduler_code",
+        "type": "STRING"
+      },
+      {
+        "name": "send_type",
+        "type": "STRING"
+      },
+      {
+        "name": "campaign_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "quality_flag",
+        "type": "STRING"
+      },
+      {
+        "name": "etl_source",
+        "type": "STRING"
+      },
+      {
+        "name": "etl_timestamp",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "page_type_authority_snap",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:42:56",
+    "modified": "2025-09-13 04:42:56",
+    "size_bytes": 1492,
+    "num_rows": 56,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "page_type",
+        "type": "STRING"
+      },
+      {
+        "name": "decided_as_of",
+        "type": "DATE"
+      }
+    ]
+  }
+]

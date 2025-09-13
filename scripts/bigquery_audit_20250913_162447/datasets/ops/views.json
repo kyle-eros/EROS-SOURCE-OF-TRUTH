@@ -1,0 +1,329 @@
+[
+  {
+    "id": "v_caption_ingestion_monitor",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-10 02:35:07",
+    "modified": "2025-09-10 02:35:07",
+    "query": "SELECT\n  DATE(run_ts) as run_date,\n  COUNT(*) as runs,\n  SUM(new_captions_inserted) as total_inserted,\n  AVG(new_captions_inserted) as avg_inserted,\n  MAX(new_captions_inserted) as max_inserted,\n  SUM(duplicates_detected) as total_duplicates,\n  SUM(error_count) as total_errors,\n  STRING_AGG(error_sample LIMIT 3) as recent_errors,\n  -- Performance metrics\n  AVG(source_rows) as avg_source_rows,\n  SAFE_DIVIDE(SUM(new_captions_inserted), SUM(source_rows)) as insertion_rate,\n  SAFE_DIVIDE(SUM(duplicates_detected), SUM(source_rows)) as duplicate_rate\nFROM `of-scheduler-proj.ops.caption_ingestion_log`\nWHERE run_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)\nGROUP BY 1\nORDER BY 1 DESC",
+    "schema": [
+      {
+        "name": "run_date",
+        "type": "DATE"
+      },
+      {
+        "name": "runs",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_inserted",
+        "type": "INTEGER"
+      },
+      {
+        "name": "avg_inserted",
+        "type": "FLOAT"
+      },
+      {
+        "name": "max_inserted",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_duplicates",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_errors",
+        "type": "INTEGER"
+      },
+      {
+        "name": "recent_errors",
+        "type": "STRING"
+      },
+      {
+        "name": "avg_source_rows",
+        "type": "FLOAT"
+      },
+      {
+        "name": "insertion_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "duplicate_rate",
+        "type": "FLOAT"
+      }
+    ]
+  },
+  {
+    "id": "v_learning_freshness",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-10 02:36:11",
+    "modified": "2025-09-10 02:36:11",
+    "query": "SELECT MAX(applied_at) AS last_applied_at,\n       TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), MAX(applied_at), MINUTE) AS minutes_since_last\nFROM `of-scheduler-proj.ops.learning_changelog`",
+    "schema": [
+      {
+        "name": "last_applied_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "minutes_since_last",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "v_message_facts_freshness",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-07 14:34:49",
+    "modified": "2025-09-07 14:34:49",
+    "query": "SELECT MAX(sending_ts) AS max_sending_ts,\n       TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), MAX(sending_ts), MINUTE) AS minutes_since_last\nFROM `of-scheduler-proj.core.message_facts`\nWHERE sending_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 48 HOUR)",
+    "schema": [
+      {
+        "name": "max_sending_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "minutes_since_last",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "v_ml_training_overrides",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-11 04:27:25",
+    "modified": "2025-09-11 04:27:25",
+    "query": "WITH override_performance AS (\n  SELECT \n    o.*,\n    f.override_result,\n    f.revenue_delta,\n    f.open_rate_delta,\n    -- Calculate scheduler accuracy\n    COUNT(*) OVER (PARTITION BY o.scheduler_email) as total_overrides,\n    COUNTIF(f.override_result LIKE 'SUCCESS%') OVER (PARTITION BY o.scheduler_email) as successful_overrides\n  FROM `of-scheduler-proj.ops.caption_overrides` o\n  LEFT JOIN `of-scheduler-proj.ops.override_feedback` f\n    ON f.scheduler_email = o.scheduler_email\n    AND f.username_page = o.username_page\n    AND DATE(f.feedback_timestamp) = DATE(o.override_timestamp)\n)\nSELECT \n  *,\n  successful_overrides / NULLIF(total_overrides, 0) as scheduler_accuracy,\n  CASE \n    WHEN revenue_delta > 10 THEN 'HIGH_VALUE_LEARNING'\n    WHEN revenue_delta < -10 THEN 'HIGH_COST_MISTAKE'\n    ELSE 'STANDARD_SIGNAL'\n  END as training_priority\nFROM override_performance\nWHERE override_timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)",
+    "schema": [
+      {
+        "name": "override_timestamp",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "scheduler_email",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "slot_time",
+        "type": "STRING"
+      },
+      {
+        "name": "original_caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "override_caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "override_reason",
+        "type": "STRING"
+      },
+      {
+        "name": "slot_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "performance_tracked",
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "override_result",
+        "type": "STRING"
+      },
+      {
+        "name": "revenue_delta",
+        "type": "FLOAT"
+      },
+      {
+        "name": "open_rate_delta",
+        "type": "FLOAT"
+      },
+      {
+        "name": "total_overrides",
+        "type": "INTEGER"
+      },
+      {
+        "name": "successful_overrides",
+        "type": "INTEGER"
+      },
+      {
+        "name": "scheduler_accuracy",
+        "type": "FLOAT"
+      },
+      {
+        "name": "training_priority",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "v_onboarding_freshness",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-12 03:52:47",
+    "modified": "2025-09-12 03:52:47",
+    "query": "WITH recent AS (\n  SELECT\n    `of-scheduler-proj.util.norm_username`(\n      REGEXP_REPLACE(REGEXP_EXTRACT(source_file, r'([^/]+)$'), r'\\.[A-Za-z0-9]+$', '')\n    ) AS username_std,\n    MAX(message_sent_ts) AS last_seen\n  FROM `of-scheduler-proj.layer_02_staging.gmail_events_staging`\n  WHERE message_sent_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 48 HOUR)\n  GROUP BY 1\n)\nSELECT r.username_std, r.last_seen\nFROM recent r\nLEFT JOIN `of-scheduler-proj.core.page_dim` d USING (username_std)\nWHERE d.username_std IS NULL\n  AND TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), r.last_seen, MINUTE) > 120",
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "last_seen",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "v_ops_plan_summary",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-04 02:10:26",
+    "modified": "2025-09-04 02:10:26",
+    "query": "SELECT\n  username_std,\n  date_local,\n  COUNT(*) AS slots,\n  MIN(hod_local) AS first_hour,\n  MAX(hod_local) AS last_hour,\n  AVG(price_usd) AS avg_price\nFROM `of-scheduler-proj.mart.weekly_template_7d_latest`\nGROUP BY 1,2\nORDER BY 1,2",
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "date_local",
+        "type": "DATE"
+      },
+      {
+        "name": "slots",
+        "type": "INTEGER"
+      },
+      {
+        "name": "first_hour",
+        "type": "INTEGER"
+      },
+      {
+        "name": "last_hour",
+        "type": "INTEGER"
+      },
+      {
+        "name": "avg_price",
+        "type": "FLOAT"
+      }
+    ]
+  },
+  {
+    "id": "v_plan_export_next_7d",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-04 02:08:12",
+    "modified": "2025-09-04 02:08:12",
+    "query": "SELECT *\nFROM `of-scheduler-proj.mart.v_plan_export_next_7d`",
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduler_name",
+        "type": "STRING"
+      },
+      {
+        "name": "tz",
+        "type": "STRING"
+      },
+      {
+        "name": "date_local",
+        "type": "DATE"
+      },
+      {
+        "name": "slot_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod_local",
+        "type": "INTEGER"
+      },
+      {
+        "name": "price_usd",
+        "type": "FLOAT"
+      },
+      {
+        "name": "planned_local_datetime",
+        "type": "DATETIME"
+      },
+      {
+        "name": "scheduled_datetime_utc",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "scheduled_utc_str",
+        "type": "STRING"
+      },
+      {
+        "name": "local_str",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "v_scheduler_performance",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-11 04:27:26",
+    "modified": "2025-09-11 04:27:26",
+    "query": "SELECT \n  scheduler_email,\n  COUNT(*) as total_overrides_30d,\n  COUNTIF(override_result LIKE 'SUCCESS%') as successful_overrides,\n  COUNTIF(override_result LIKE 'FAILURE%') as failed_overrides,\n  ROUND(AVG(revenue_delta), 2) as avg_revenue_impact,\n  ROUND(SUM(revenue_delta), 2) as total_revenue_impact,\n  ROUND(COUNTIF(override_result LIKE 'SUCCESS%') / COUNT(*) * 100, 1) as success_rate,\n  ARRAY_AGG(\n    STRUCT(\n      username_page,\n      override_result,\n      revenue_delta\n    ) \n    ORDER BY ABS(revenue_delta) DESC \n    LIMIT 5\n  ) as top_impacts\nFROM `of-scheduler-proj.ops.override_feedback`\nWHERE feedback_timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)\nGROUP BY scheduler_email\nORDER BY total_revenue_impact DESC",
+    "schema": [
+      {
+        "name": "scheduler_email",
+        "type": "STRING"
+      },
+      {
+        "name": "total_overrides_30d",
+        "type": "INTEGER"
+      },
+      {
+        "name": "successful_overrides",
+        "type": "INTEGER"
+      },
+      {
+        "name": "failed_overrides",
+        "type": "INTEGER"
+      },
+      {
+        "name": "avg_revenue_impact",
+        "type": "FLOAT"
+      },
+      {
+        "name": "total_revenue_impact",
+        "type": "FLOAT"
+      },
+      {
+        "name": "success_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "top_impacts",
+        "type": "RECORD",
+        "mode": "REPEATED",
+        "fields": [
+          {
+            "name": "username_page",
+            "type": "STRING"
+          },
+          {
+            "name": "override_result",
+            "type": "STRING"
+          },
+          {
+            "name": "revenue_delta",
+            "type": "FLOAT"
+          }
+        ]
+      }
+    ]
+  }
+]

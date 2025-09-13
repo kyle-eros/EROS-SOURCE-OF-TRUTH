@@ -1,0 +1,209 @@
+[
+  {
+    "id": "feature_store",
+    "type": "TABLE",
+    "description": "ML feature store with comprehensive features for caption ranking. Includes volume-weighted metrics, Bayesian smoothing, UCB exploration, temporal patterns, and dynamic cooldowns. Updated incrementally daily.",
+    "created": "2025-09-11 09:52:08",
+    "modified": "2025-09-11 09:53:14",
+    "size_bytes": 60460,
+    "num_rows": 166,
+    "schema": [
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "creator_username",
+        "type": "STRING"
+      },
+      {
+        "name": "creator_page_type",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_category",
+        "type": "STRING"
+      },
+      {
+        "name": "performance_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "rps_30d",
+            "type": "FLOAT"
+          },
+          {
+            "name": "rps_weighted",
+            "type": "FLOAT"
+          },
+          {
+            "name": "rps_smoothed",
+            "type": "FLOAT"
+          },
+          {
+            "name": "purchase_rate_30d",
+            "type": "FLOAT"
+          },
+          {
+            "name": "purchase_rate_smoothed",
+            "type": "FLOAT"
+          },
+          {
+            "name": "revenue_30d",
+            "type": "FLOAT"
+          },
+          {
+            "name": "sends_30d",
+            "type": "INTEGER"
+          },
+          {
+            "name": "trend_slope",
+            "type": "FLOAT"
+          },
+          {
+            "name": "stability_score",
+            "type": "FLOAT"
+          },
+          {
+            "name": "confidence_score",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "statistical_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "median_rps",
+            "type": "FLOAT"
+          },
+          {
+            "name": "p75_rps",
+            "type": "FLOAT"
+          },
+          {
+            "name": "p25_rps",
+            "type": "FLOAT"
+          },
+          {
+            "name": "rps_stddev",
+            "type": "FLOAT"
+          },
+          {
+            "name": "iqr",
+            "type": "FLOAT"
+          },
+          {
+            "name": "coefficient_variation",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "exploration_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "ucb_bonus",
+            "type": "FLOAT"
+          },
+          {
+            "name": "exploration_temperature",
+            "type": "FLOAT"
+          },
+          {
+            "name": "novelty_bonus",
+            "type": "FLOAT"
+          },
+          {
+            "name": "smoothing_weight",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "temporal_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "best_hour",
+            "type": "INTEGER"
+          },
+          {
+            "name": "best_hour_rps",
+            "type": "FLOAT"
+          },
+          {
+            "name": "best_day_of_week",
+            "type": "INTEGER"
+          },
+          {
+            "name": "hours_since_use",
+            "type": "INTEGER"
+          },
+          {
+            "name": "last_used_timestamp",
+            "type": "TIMESTAMP"
+          },
+          {
+            "name": "active_days_30d",
+            "type": "INTEGER"
+          }
+        ]
+      },
+      {
+        "name": "cooldown_features",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "base_cooldown_hours",
+            "type": "FLOAT"
+          },
+          {
+            "name": "fatigue_score",
+            "type": "FLOAT"
+          },
+          {
+            "name": "is_eligible",
+            "type": "BOOLEAN"
+          }
+        ]
+      },
+      {
+        "name": "composite_scores",
+        "type": "RECORD",
+        "fields": [
+          {
+            "name": "base_score",
+            "type": "FLOAT"
+          },
+          {
+            "name": "exploration_score",
+            "type": "FLOAT"
+          },
+          {
+            "name": "rps_percentile",
+            "type": "FLOAT"
+          },
+          {
+            "name": "category_percentile",
+            "type": "FLOAT"
+          }
+        ]
+      },
+      {
+        "name": "computed_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "computed_date",
+        "type": "DATE"
+      }
+    ]
+  }
+]

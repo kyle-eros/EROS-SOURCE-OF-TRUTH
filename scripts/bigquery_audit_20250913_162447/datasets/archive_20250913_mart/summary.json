@@ -1,0 +1,9 @@
+{
+  "dataset_id": "archive_20250913_mart",
+  "counts": {
+    "tables": 8,
+    "views": 0,
+    "materialized_views": 0,
+    "routines": 0
+  }
+}

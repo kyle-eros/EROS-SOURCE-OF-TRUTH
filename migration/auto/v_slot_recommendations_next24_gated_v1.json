@@ -1,0 +1,53 @@
+{
+  "creationTime": "1757253916712",
+  "etag": "ChqDqbqlDVgW/Nzi4t6Hcw==",
+  "id": "of-scheduler-proj:mart.v_slot_recommendations_next24_gated_v1",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1757253916712",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "slot_dt_local",
+        "type": "DATETIME"
+      },
+      {
+        "name": "dow",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod",
+        "type": "INTEGER"
+      },
+      {
+        "name": "reco_dm_type",
+        "type": "STRING"
+      },
+      {
+        "name": "reco_price_usd",
+        "type": "NUMERIC"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_slot_recommendations_next24_gated_v1",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_slot_recommendations_next24_gated_v1"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH base AS (\n  SELECT username_page, slot_dt_local\n  FROM `of-scheduler-proj.mart.v_slot_recommendations_next24_v3`\n),\ndh AS (\n  SELECT\n    b.username_page,\n    b.slot_dt_local,\n    MOD(EXTRACT(DAYOFWEEK FROM b.slot_dt_local) + 5, 7) AS dow,\n    CAST(FORMAT_DATETIME('%H', b.slot_dt_local) AS INT64) AS hod\n  FROM base b\n),\nprice AS (\n  SELECT s.username_page, s.dow, s.hod, p.price_q AS reco_price_usd\n  FROM `of-scheduler-proj.mart.v_slot_scorecard_v3` s\n  LEFT JOIN `of-scheduler-proj.mart.v_ppv_price_reco_lcb_28d_v3` p\n    ON p.username_page = s.username_page\n   AND p.dow = s.dow\n   AND p.hod = s.hod\n),\npaid AS (\n  SELECT username_page, is_paid\n  FROM `of-scheduler-proj.core.v_page_paid_final_v1`\n)\nSELECT\n  dh.username_page,\n  dh.slot_dt_local,\n  dh.dow, dh.hod,\n  CASE WHEN pr.reco_price_usd > 0 THEN 'ppv' ELSE 'free' END AS reco_dm_type,\n  IFNULL(pr.reco_price_usd, 0) AS reco_price_usd\nFROM dh\nLEFT JOIN price pr USING (username_page, dow, hod)\nLEFT JOIN paid  p  USING (username_page)\nWHERE NOT (p.is_paid = FALSE AND pr.reco_price_usd > 0)",
+    "useLegacySql": false
+  }
+}

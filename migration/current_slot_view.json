@@ -1,0 +1,69 @@
+{
+  "creationTime": "1757766256589",
+  "etag": "K70eIpme0WtjMRj7vI8NAw==",
+  "id": "of-scheduler-proj:mart.v_slot_recommendations_next24_v3",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1757766256589",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "slot_dt_local",
+        "type": "DATETIME"
+      },
+      {
+        "name": "dow",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hod",
+        "type": "INTEGER"
+      },
+      {
+        "name": "slot_score_base",
+        "type": "FLOAT"
+      },
+      {
+        "name": "best_ppv_buy_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "rps_eb",
+        "type": "FLOAT"
+      },
+      {
+        "name": "rps_lcb",
+        "type": "FLOAT"
+      },
+      {
+        "name": "reco_dm_type",
+        "type": "STRING"
+      },
+      {
+        "name": "reco_price_usd",
+        "type": "NUMERIC"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_slot_recommendations_next24_v3",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_slot_recommendations_next24_v3"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH pages AS (\n  SELECT v.username_page, v.username_std, COALESCE(pd.tz,'UTC') AS tz\n  FROM `of-scheduler-proj.layer_04_semantic.v_pages` v\n  LEFT JOIN `of-scheduler-proj.layer_04_semantic.v_page_dim` pd USING (username_std)\n),\nnowz AS (\n  SELECT username_page, username_std, tz, DATETIME(CURRENT_TIMESTAMP(), tz) AS now_local\n  FROM pages\n),\ngrid AS (\n  SELECT n.username_page, n.username_std, n.tz,\n         DATETIME_TRUNC(n.now_local, HOUR) + INTERVAL h HOUR AS slot_dt_local\n  FROM nowz n, UNNEST(GENERATE_ARRAY(0,23)) AS h\n),\nfeat AS (\n  SELECT\n    g.username_page, g.username_std, g.tz,\n    MOD(EXTRACT(DAYOFWEEK FROM g.slot_dt_local) + 5, 7) AS dow,\n    CAST(FORMAT_DATETIME('%H', g.slot_dt_local) AS INT64) AS hod,\n    g.slot_dt_local\n  FROM grid g\n),\nbest_price AS (\n  SELECT s.username_page, s.dow, s.hod, s.slot_score_base,\n         p.price_q AS best_ppv_price,\n         p.p_buy_eb, p.rps_eb, p.rps_lcb\n  FROM `of-scheduler-proj.mart.v_slot_scorecard_v3` s\n  LEFT JOIN `of-scheduler-proj.mart.v_ppv_price_reco_lcb_28d_v3` p\n    ON p.username_page=s.username_page AND p.dow=s.dow AND p.hod=s.hod\n),\nquota AS (\n  SELECT username_std, dow, ppv_quota AS max_sends_today\n  FROM `of-scheduler-proj.mart.v_daily_quota_policy_v3`\n)\nSELECT\n  f.username_page,\n  f.slot_dt_local,\n  f.dow, f.hod,\n  b.slot_score_base,\n  b.p_buy_eb  AS best_ppv_buy_rate,\n  b.rps_eb,\n  b.rps_lcb,\n  -- paid/free gate\n  CASE\n    WHEN NOT COALESCE(pp.is_paid_sub, FALSE) THEN 'free'\n    WHEN b.rps_lcb IS NOT NULL AND b.rps_lcb >= COALESCE(sc.rps_free,0) THEN 'ppv'\n    ELSE 'free'\n  END AS reco_dm_type,\n  CASE\n    WHEN NOT COALESCE(pp.is_paid_sub, FALSE) THEN 0\n    WHEN b.rps_lcb IS NOT NULL AND b.rps_lcb >= COALESCE(sc.rps_free,0) THEN IFNULL(b.best_ppv_price,0)\n    ELSE 0\n  END AS reco_price_usd\nFROM feat f\nLEFT JOIN best_price b USING (username_page, dow, hod)\nLEFT JOIN `of-scheduler-proj.mart.v_slot_scorecard_v3` sc USING (username_page, dow, hod)\nLEFT JOIN quota q\n  ON q.username_std=f.username_std AND q.dow=f.dow\nLEFT JOIN `of-scheduler-proj.layer_04_semantic.v_page_paid_status` pp\n  ON pp.username_std = f.username_std\nQUALIFY ROW_NUMBER() OVER (\n  PARTITION BY f.username_page, DATE(f.slot_dt_local)\n  ORDER BY b.slot_score_base DESC, f.slot_dt_local\n) <= COALESCE(q.max_sends_today, 4)",
+    "useLegacySql": false
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "dataset_id": "ops_monitor",
+  "counts": {
+    "tables": 1,
+    "views": 9,
+    "materialized_views": 0,
+    "routines": 0
+  }
+}

@@ -1,0 +1,219 @@
+[
+  {
+    "id": "caption_performance_daily",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 09:35:21",
+    "modified": "2025-09-11 09:35:21",
+    "size_bytes": 596584,
+    "num_rows": 1209,
+    "schema": [
+      {
+        "name": "metric_date",
+        "type": "DATE"
+      },
+      {
+        "name": "caption_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_text",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_category",
+        "type": "STRING"
+      },
+      {
+        "name": "creator_username",
+        "type": "STRING"
+      },
+      {
+        "name": "creator_page_type",
+        "type": "STRING"
+      },
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "send_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_messages_sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_messages_viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_messages_purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_revenue",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "avg_price",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "view_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "purchase_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "revenue_per_send",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "median_rps",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "p75_rps",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "p25_rps",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "rps_7d_avg",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "purchase_rate_7d_avg",
+        "type": "FLOAT"
+      },
+      {
+        "name": "rps_30d_avg",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "rps_trend_slope",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "stability_score",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "rps_percentile_by_creator",
+        "type": "FLOAT"
+      },
+      {
+        "name": "rps_percentile_by_category",
+        "type": "FLOAT"
+      },
+      {
+        "name": "days_since_last_use",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hourly_performance",
+        "type": "RECORD",
+        "mode": "REPEATED",
+        "fields": [
+          {
+            "name": "hour",
+            "type": "INTEGER"
+          },
+          {
+            "name": "sends",
+            "type": "INTEGER"
+          },
+          {
+            "name": "rps",
+            "type": "NUMERIC"
+          }
+        ]
+      },
+      {
+        "name": "performance_tier",
+        "type": "STRING"
+      },
+      {
+        "name": "computed_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "message_facts",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 08:34:46",
+    "modified": "2025-09-13 08:34:46",
+    "size_bytes": 11442186,
+    "num_rows": 37643,
+    "schema": [
+      {
+        "name": "row_key_v1",
+        "type": "STRING"
+      },
+      {
+        "name": "message_id",
+        "type": "STRING"
+      },
+      {
+        "name": "username_raw",
+        "type": "STRING"
+      },
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "sender",
+        "type": "STRING"
+      },
+      {
+        "name": "sending_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "sending_date",
+        "type": "DATE"
+      },
+      {
+        "name": "price_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "earnings_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "source_file",
+        "type": "STRING"
+      },
+      {
+        "name": "loaded_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  }
+]

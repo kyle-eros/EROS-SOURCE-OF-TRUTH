@@ -1,0 +1,1 @@
+CREATE SCHEMA IF NOT EXISTS `of-scheduler-proj.ops_config`; CREATE TABLE IF NOT EXISTS `of-scheduler-proj.ops_config.tier_thresholds` (computed_date DATE NOT NULL, population_count INT64 NOT NULL, q40 FLOAT64, q60 FLOAT64, q90 FLOAT64, af_p70 FLOAT64, msg_p60 FLOAT64, msg_p70 FLOAT64, tot_p70 FLOAT64);

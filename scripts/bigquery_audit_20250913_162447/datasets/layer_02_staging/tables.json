@@ -1,0 +1,185 @@
+[
+  {
+    "id": "gmail_events_staging",
+    "type": "TABLE",
+    "description": "Gmail ETL staging table - partitioned by INGESTION date for recent window queries. Event dates are stored as values, not partitions.",
+    "created": "2025-09-12 01:57:43",
+    "modified": "2025-09-12 05:01:48",
+    "size_bytes": 6442567,
+    "num_rows": 12693,
+    "schema": [
+      {
+        "name": "ingestion_run_id",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "ingested_at",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "ingestion_date",
+        "type": "DATE",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "message_id",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "source_file",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "Message",
+        "type": "STRING"
+      },
+      {
+        "name": "Sending_time",
+        "type": "STRING"
+      },
+      {
+        "name": "Sender",
+        "type": "STRING"
+      },
+      {
+        "name": "Price",
+        "type": "STRING"
+      },
+      {
+        "name": "Sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "Earnings",
+        "type": "STRING"
+      },
+      {
+        "name": "message_sent_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "message_sent_date",
+        "type": "DATE"
+      }
+    ]
+  },
+  {
+    "id": "stg_message_events",
+    "type": "TABLE",
+    "description": "Staging table for message events. Cleaned, validated, and deduplicated data from raw message facts. Includes data quality flags and computed metrics.",
+    "created": "2025-09-11 09:34:28",
+    "modified": "2025-09-11 09:34:29",
+    "size_bytes": 8015743,
+    "num_rows": 27162,
+    "schema": [
+      {
+        "name": "message_event_id",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "sending_ts",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "event_date",
+        "type": "DATE"
+      },
+      {
+        "name": "messages_sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "messages_viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "messages_purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "price_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "revenue_usd",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "view_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "purchase_rate",
+        "type": "FLOAT"
+      },
+      {
+        "name": "revenue_per_send",
+        "type": "NUMERIC"
+      },
+      {
+        "name": "hour_utc",
+        "type": "INTEGER"
+      },
+      {
+        "name": "day_of_week",
+        "type": "INTEGER"
+      },
+      {
+        "name": "year_month",
+        "type": "STRING"
+      },
+      {
+        "name": "price_tier",
+        "type": "STRING"
+      },
+      {
+        "name": "send_size_category",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduler_code",
+        "type": "STRING"
+      },
+      {
+        "name": "campaign_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "quality_status",
+        "type": "STRING"
+      },
+      {
+        "name": "source_table",
+        "type": "STRING"
+      },
+      {
+        "name": "source_date",
+        "type": "DATE"
+      },
+      {
+        "name": "staging_timestamp",
+        "type": "TIMESTAMP"
+      }
+    ]
+  }
+]

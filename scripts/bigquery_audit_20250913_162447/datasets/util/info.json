@@ -1,0 +1,25 @@
+{
+  "id": "util",
+  "description": "Utility UDFs for ingestion/cleansing and scheduling analytics",
+  "location": "US",
+  "created": "2025-09-02 19:37:48",
+  "modified": "2025-09-02 19:37:48",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

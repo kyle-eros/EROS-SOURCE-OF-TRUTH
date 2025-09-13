@@ -1,0 +1,431 @@
+[
+  {
+    "id": "feature_flags",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-12 11:50:56",
+    "modified": "2025-09-12 11:50:59",
+    "size_bytes": 125,
+    "num_rows": 4,
+    "schema": [
+      {
+        "name": "flag_name",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "is_enabled",
+        "type": "BOOLEAN",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED"
+      }
+    ]
+  },
+  {
+    "id": "ml_parameters",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-11 09:56:12",
+    "modified": "2025-09-11 09:56:14",
+    "size_bytes": 746,
+    "num_rows": 3,
+    "schema": [
+      {
+        "name": "config_id",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "environment",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "page_state",
+        "type": "STRING"
+      },
+      {
+        "name": "parameters",
+        "type": "JSON",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "version_number",
+        "type": "INTEGER",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "experiment_id",
+        "type": "STRING"
+      },
+      {
+        "name": "experiment_allocation",
+        "type": "FLOAT"
+      },
+      {
+        "name": "created_by",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "expires_at",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "description",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "ml_params_bandit",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-12 11:51:04",
+    "modified": "2025-09-12 11:51:07",
+    "size_bytes": 166,
+    "num_rows": 3,
+    "schema": [
+      {
+        "name": "tier",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "alpha",
+        "type": "FLOAT",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "beta",
+        "type": "FLOAT",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "epsilon",
+        "type": "FLOAT",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "ucb_c",
+        "type": "FLOAT",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "base_cooldown_hours",
+        "type": "FLOAT",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "use_true_thompson",
+        "type": "BOOLEAN",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED"
+      }
+    ]
+  },
+  {
+    "id": "page_overrides",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 09:43:08",
+    "modified": "2025-09-13 09:43:08",
+    "size_bytes": 0,
+    "num_rows": 0,
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "quota_min",
+        "type": "INTEGER"
+      },
+      {
+        "name": "quota_max",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hour_pool_override",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "scam_guardrails",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-12 11:51:02",
+    "modified": "2025-09-12 11:51:04",
+    "size_bytes": 352,
+    "num_rows": 8,
+    "schema": [
+      {
+        "name": "guardrail_name",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "threshold_value",
+        "type": "FLOAT",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "action",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED"
+      }
+    ]
+  },
+  {
+    "id": "scheduling_packs",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 01:24:51",
+    "modified": "2025-09-13 01:24:53",
+    "size_bytes": 1940,
+    "num_rows": 28,
+    "schema": [
+      {
+        "name": "tier",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "day_of_week",
+        "type": "INTEGER",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "theme_focus",
+        "type": "STRING"
+      },
+      {
+        "name": "ppv_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "bump_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "dripset_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "wall_type",
+        "type": "STRING"
+      },
+      {
+        "name": "story_count",
+        "type": "INTEGER"
+      },
+      {
+        "name": "tip_event_flag",
+        "type": "BOOLEAN"
+      }
+    ]
+  },
+  {
+    "id": "settings_modeling",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 04:51:14",
+    "modified": "2025-09-13 04:51:14",
+    "size_bytes": 1968,
+    "num_rows": 58,
+    "schema": [
+      {
+        "name": "setting_key",
+        "type": "STRING"
+      },
+      {
+        "name": "setting_val",
+        "type": "STRING"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "starter_pack_by_tier_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 10:06:38",
+    "modified": "2025-09-13 10:07:03",
+    "size_bytes": 43,
+    "num_rows": 4,
+    "schema": [
+      {
+        "name": "tier",
+        "type": "STRING"
+      },
+      {
+        "name": "page_type",
+        "type": "STRING"
+      },
+      {
+        "name": "pack_id",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "starter_pack_policy_v1",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 10:07:11",
+    "modified": "2025-09-13 10:07:32",
+    "size_bytes": 245,
+    "num_rows": 7,
+    "schema": [
+      {
+        "name": "pack_id",
+        "type": "STRING"
+      },
+      {
+        "name": "dow",
+        "type": "INTEGER"
+      },
+      {
+        "name": "ppv_quota",
+        "type": "INTEGER"
+      },
+      {
+        "name": "hour_pool",
+        "type": "INTEGER"
+      },
+      {
+        "name": "min_hod",
+        "type": "INTEGER"
+      },
+      {
+        "name": "max_hod",
+        "type": "INTEGER"
+      },
+      {
+        "name": "price_mode_default",
+        "type": "STRING"
+      },
+      {
+        "name": "is_burst_dow",
+        "type": "INTEGER"
+      }
+    ]
+  },
+  {
+    "id": "tier_slot_packs",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-12 11:50:59",
+    "modified": "2025-09-12 11:51:01",
+    "size_bytes": 139,
+    "num_rows": 3,
+    "schema": [
+      {
+        "name": "tier",
+        "type": "STRING",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "anchors_per_day",
+        "type": "INTEGER",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "supports_per_day",
+        "type": "INTEGER",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "min_spacing_minutes",
+        "type": "INTEGER",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "jitter_minutes",
+        "type": "INTEGER",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED"
+      }
+    ]
+  },
+  {
+    "id": "tier_thresholds",
+    "type": "TABLE",
+    "description": "",
+    "created": "2025-09-13 01:21:06",
+    "modified": "2025-09-13 01:21:54",
+    "size_bytes": 72,
+    "num_rows": 1,
+    "schema": [
+      {
+        "name": "computed_date",
+        "type": "DATE",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "population_count",
+        "type": "INTEGER",
+        "mode": "REQUIRED"
+      },
+      {
+        "name": "q40",
+        "type": "FLOAT"
+      },
+      {
+        "name": "q60",
+        "type": "FLOAT"
+      },
+      {
+        "name": "q90",
+        "type": "FLOAT"
+      },
+      {
+        "name": "af_p70",
+        "type": "FLOAT"
+      },
+      {
+        "name": "msg_p60",
+        "type": "FLOAT"
+      },
+      {
+        "name": "msg_p70",
+        "type": "FLOAT"
+      },
+      {
+        "name": "tot_p70",
+        "type": "FLOAT"
+      }
+    ]
+  }
+]

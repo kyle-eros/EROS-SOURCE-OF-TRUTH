@@ -1,0 +1,9 @@
+{
+  "dataset_id": "layer_02_staging",
+  "counts": {
+    "tables": 2,
+    "views": 0,
+    "materialized_views": 0,
+    "routines": 2
+  }
+}

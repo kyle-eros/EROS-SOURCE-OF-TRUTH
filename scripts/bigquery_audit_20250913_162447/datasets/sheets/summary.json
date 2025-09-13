@@ -1,0 +1,9 @@
+{
+  "dataset_id": "sheets",
+  "counts": {
+    "tables": 3,
+    "views": 2,
+    "materialized_views": 0,
+    "routines": 0
+  }
+}

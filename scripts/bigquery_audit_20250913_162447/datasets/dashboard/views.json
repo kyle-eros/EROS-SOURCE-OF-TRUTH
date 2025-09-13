@@ -1,0 +1,332 @@
+[
+  {
+    "id": "v_ai_recommendation_performance",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-10 17:57:45",
+    "modified": "2025-09-10 17:57:45",
+    "query": "WITH caption_performance AS (\n  SELECT\n    cr.username_page,\n    cr.caption_hash,\n    cr.caption_text,\n    AVG(cr.p_buy_eb) as predicted_purchase_rate,\n    AVG(cr.score_final) as ai_confidence_score,\n    COUNT(*) as times_recommended,\n    COALESCE(SUM(CAST(mf.sent AS INT64)), 0) as actual_sent,\n    COALESCE(SUM(CAST(mf.purchased AS INT64)), 0) as actual_purchased,\n    COALESCE(SAFE_DIVIDE(SUM(CAST(mf.purchased AS INT64)), SUM(CAST(mf.sent AS INT64))), 0) as actual_purchase_rate,\n    COALESCE(SUM(CAST(mf.earnings_usd AS FLOAT64)), 0) as actual_revenue\n  FROM `of-scheduler-proj.mart.caption_rank_next24_v3_tbl` cr\n  LEFT JOIN `of-scheduler-proj.core.message_facts` mf\n    ON cr.username_page = mf.username_std \n    AND cr.caption_hash = mf.caption_hash\n    AND DATE(cr.slot_dt_local) = DATE(mf.sending_ts)\n  WHERE DATE(cr.slot_dt_local) >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)\n    AND cr.rn = 1\n  GROUP BY 1, 2, 3\n  HAVING actual_sent > 0\n)\nSELECT\n  username_page,\n  caption_hash,\n  LEFT(caption_text, 50) as caption_preview,\n  times_recommended,\n  actual_sent,\n  actual_purchased,\n  ROUND(predicted_purchase_rate * 100, 2) as predicted_purchase_rate_pct,\n  ROUND(actual_purchase_rate * 100, 2) as actual_purchase_rate_pct,\n  ROUND(ai_confidence_score, 3) as ai_confidence_score,\n  ROUND(actual_revenue, 2) as actual_revenue,\n  ABS(predicted_purchase_rate - actual_purchase_rate) as prediction_error,\n  CASE \n    WHEN ABS(predicted_purchase_rate - actual_purchase_rate) <= 0.01 THEN 'EXCELLENT'\n    WHEN ABS(predicted_purchase_rate - actual_purchase_rate) <= 0.02 THEN 'GOOD'\n    WHEN ABS(predicted_purchase_rate - actual_purchase_rate) <= 0.03 THEN 'FAIR'\n    ELSE 'POOR'\n  END as prediction_accuracy\nFROM caption_performance\nORDER BY actual_revenue DESC",
+    "schema": [
+      {
+        "name": "username_page",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_hash",
+        "type": "STRING"
+      },
+      {
+        "name": "caption_preview",
+        "type": "STRING"
+      },
+      {
+        "name": "times_recommended",
+        "type": "INTEGER"
+      },
+      {
+        "name": "actual_sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "actual_purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "predicted_purchase_rate_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "actual_purchase_rate_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "ai_confidence_score",
+        "type": "FLOAT"
+      },
+      {
+        "name": "actual_revenue",
+        "type": "FLOAT"
+      },
+      {
+        "name": "prediction_error",
+        "type": "FLOAT"
+      },
+      {
+        "name": "prediction_accuracy",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "v_executive_summary",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-10 17:57:44",
+    "modified": "2025-09-10 17:57:44",
+    "query": "WITH current_period AS (\n  SELECT\n    COUNT(DISTINCT username_std) as active_pages,\n    COUNT(DISTINCT DATE(sending_ts)) as active_days,\n    COUNT(*) as total_messages,\n    SUM(CAST(sent AS INT64)) as total_sent,\n    SUM(CAST(purchased AS INT64)) as total_purchased,\n    SUM(CAST(earnings_usd AS FLOAT64)) as total_revenue,\n    SAFE_DIVIDE(SUM(CAST(purchased AS INT64)), SUM(CAST(sent AS INT64))) as overall_conversion_rate\n  FROM `of-scheduler-proj.core.message_facts`\n  WHERE DATE(sending_ts) >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)\n    AND earnings_usd IS NOT NULL\n),\nprevious_period AS (\n  SELECT\n    SUM(CAST(earnings_usd AS FLOAT64)) as prev_revenue,\n    SAFE_DIVIDE(SUM(CAST(purchased AS INT64)), SUM(CAST(sent AS INT64))) as prev_conversion_rate\n  FROM `of-scheduler-proj.core.message_facts`\n  WHERE DATE(sending_ts) >= DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY)\n    AND DATE(sending_ts) < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)\n    AND earnings_usd IS NOT NULL\n)\nSELECT\n  cp.active_pages,\n  cp.active_days,\n  cp.total_messages,\n  cp.total_sent,\n  cp.total_purchased,\n  ROUND(cp.total_revenue, 2) as total_revenue,\n  ROUND(cp.overall_conversion_rate * 100, 2) as conversion_rate_pct,\n  ROUND(cp.total_revenue / cp.active_pages, 2) as revenue_per_page,\n  ROUND(cp.total_revenue / cp.total_messages, 2) as revenue_per_message,\n  ROUND(pp.prev_revenue, 2) as prev_period_revenue,\n  ROUND(cp.total_revenue - pp.prev_revenue, 2) as revenue_change,\n  ROUND(SAFE_DIVIDE(cp.total_revenue - pp.prev_revenue, pp.prev_revenue) * 100, 1) as revenue_growth_pct,\n  ROUND((cp.overall_conversion_rate - pp.prev_conversion_rate) * 100, 2) as conversion_rate_change_pts,\n  (SELECT COUNT(*) FROM `of-scheduler-proj.mart.caption_rank_next24_v3_tbl` WHERE DATE(slot_dt_local) = CURRENT_DATE()) as ai_predictions_today,\n  (SELECT COUNT(*) FROM `of-scheduler-proj.raw.caption_library`) as total_captions_available,\n  CURRENT_TIMESTAMP() as report_generated_at\nFROM current_period cp\nCROSS JOIN previous_period pp",
+    "schema": [
+      {
+        "name": "active_pages",
+        "type": "INTEGER"
+      },
+      {
+        "name": "active_days",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_messages",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_revenue",
+        "type": "FLOAT"
+      },
+      {
+        "name": "conversion_rate_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "revenue_per_page",
+        "type": "FLOAT"
+      },
+      {
+        "name": "revenue_per_message",
+        "type": "FLOAT"
+      },
+      {
+        "name": "prev_period_revenue",
+        "type": "FLOAT"
+      },
+      {
+        "name": "revenue_change",
+        "type": "FLOAT"
+      },
+      {
+        "name": "revenue_growth_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "conversion_rate_change_pts",
+        "type": "FLOAT"
+      },
+      {
+        "name": "ai_predictions_today",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_captions_available",
+        "type": "INTEGER"
+      },
+      {
+        "name": "report_generated_at",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  {
+    "id": "v_page_performance_leaderboard",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-10 07:50:36",
+    "modified": "2025-09-10 07:50:36",
+    "query": "WITH page_metrics AS (\n  SELECT\n    mf.username_std,\n    COALESCE(pso.assigned_scheduler, 'unassigned') as scheduler,\n    COUNT(*) as messages_sent,\n    SUM(CAST(mf.sent AS INT64)) as total_sent,\n    SUM(CAST(mf.viewed AS INT64)) as total_viewed,\n    SUM(CAST(mf.purchased AS INT64)) as total_purchased,\n    SUM(CAST(mf.earnings_usd AS FLOAT64)) as total_revenue,\n    AVG(CAST(mf.price_usd AS FLOAT64)) as avg_price,\n    SAFE_DIVIDE(SUM(CAST(mf.viewed AS INT64)), SUM(CAST(mf.sent AS INT64))) as view_rate,\n    SAFE_DIVIDE(SUM(CAST(mf.purchased AS INT64)), SUM(CAST(mf.sent AS INT64))) as purchase_rate,\n    SAFE_DIVIDE(SUM(CAST(mf.earnings_usd AS FLOAT64)), SUM(CAST(mf.sent AS INT64))) as revenue_per_send,\n    MAX(DATE(mf.sending_ts)) as last_active_date,\n    DATE_DIFF(CURRENT_DATE(), MAX(DATE(mf.sending_ts)), DAY) as days_since_active\n  FROM `of-scheduler-proj.core.message_facts` mf\n  LEFT JOIN `of-scheduler-proj.core.page_scheduler_override` pso\n    ON mf.username_std = pso.username_std\n  WHERE DATE(mf.sending_ts) >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)\n    AND mf.earnings_usd IS NOT NULL\n  GROUP BY 1, 2\n  HAVING total_sent > 10\n),\npage_ranks AS (\n  SELECT *,\n    ROW_NUMBER() OVER (ORDER BY total_revenue DESC) as revenue_rank,\n    ROW_NUMBER() OVER (ORDER BY purchase_rate DESC) as conversion_rank,\n    ROW_NUMBER() OVER (ORDER BY revenue_per_send DESC) as efficiency_rank\n  FROM page_metrics\n)\nSELECT\n  username_std,\n  scheduler,\n  messages_sent,\n  total_sent,\n  total_purchased,\n  ROUND(total_revenue, 2) as total_revenue,\n  ROUND(avg_price, 2) as avg_price,\n  ROUND(view_rate * 100, 2) as view_rate_pct,\n  ROUND(purchase_rate * 100, 2) as purchase_rate_pct,\n  ROUND(revenue_per_send, 3) as revenue_per_send,\n  last_active_date,\n  days_since_active,\n  revenue_rank,\n  conversion_rank,\n  efficiency_rank,\n  CASE \n    WHEN days_since_active > 7 THEN 'INACTIVE'\n    WHEN purchase_rate >= 0.05 AND revenue_per_send >= 0.10 THEN 'EXCELLENT'\n    WHEN purchase_rate >= 0.03 AND revenue_per_send >= 0.05 THEN 'GOOD'\n    WHEN purchase_rate >= 0.01 THEN 'FAIR'\n    ELSE 'POOR'\n  END as performance_tier\nFROM page_ranks\nORDER BY total_revenue DESC",
+    "schema": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "scheduler",
+        "type": "STRING"
+      },
+      {
+        "name": "messages_sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_revenue",
+        "type": "FLOAT"
+      },
+      {
+        "name": "avg_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "view_rate_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "purchase_rate_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "revenue_per_send",
+        "type": "FLOAT"
+      },
+      {
+        "name": "last_active_date",
+        "type": "DATE"
+      },
+      {
+        "name": "days_since_active",
+        "type": "INTEGER"
+      },
+      {
+        "name": "revenue_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "conversion_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "efficiency_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "performance_tier",
+        "type": "STRING"
+      }
+    ]
+  },
+  {
+    "id": "v_revenue_overview",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-10 07:48:03",
+    "modified": "2025-09-10 07:48:03",
+    "query": "WITH daily_metrics AS (\n  SELECT\n    DATE(sending_ts) as date,\n    COUNT(*) as messages_sent,\n    SUM(CAST(sent AS INT64)) as total_sent,\n    SUM(CAST(viewed AS INT64)) as total_viewed,\n    SUM(CAST(purchased AS INT64)) as total_purchased,\n    SUM(CAST(earnings_usd AS FLOAT64)) as total_revenue,\n    AVG(CAST(price_usd AS FLOAT64)) as avg_price,\n    SAFE_DIVIDE(SUM(CAST(viewed AS INT64)), SUM(CAST(sent AS INT64))) as view_rate,\n    SAFE_DIVIDE(SUM(CAST(purchased AS INT64)), SUM(CAST(sent AS INT64))) as purchase_rate,\n    SAFE_DIVIDE(SUM(CAST(earnings_usd AS FLOAT64)), SUM(CAST(purchased AS INT64))) as avg_order_value\n  FROM `of-scheduler-proj.core.message_facts`\n  WHERE DATE(sending_ts) >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)\n    AND earnings_usd IS NOT NULL\n  GROUP BY 1\n)\nSELECT \n  date,\n  messages_sent,\n  total_sent,\n  total_viewed,\n  total_purchased,\n  ROUND(total_revenue, 2) as total_revenue,\n  ROUND(avg_price, 2) as avg_price,\n  ROUND(view_rate * 100, 2) as view_rate_pct,\n  ROUND(purchase_rate * 100, 2) as purchase_rate_pct,\n  ROUND(avg_order_value, 2) as avg_order_value,\n  LAG(total_revenue) OVER (ORDER BY date) as prev_day_revenue,\n  ROUND(total_revenue - LAG(total_revenue) OVER (ORDER BY date), 2) as revenue_change,\n  ROUND(SAFE_DIVIDE(total_revenue - LAG(total_revenue) OVER (ORDER BY date), LAG(total_revenue) OVER (ORDER BY date)) * 100, 1) as revenue_growth_pct\nFROM daily_metrics\nORDER BY date DESC",
+    "schema": [
+      {
+        "name": "date",
+        "type": "DATE"
+      },
+      {
+        "name": "messages_sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_viewed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_revenue",
+        "type": "FLOAT"
+      },
+      {
+        "name": "avg_price",
+        "type": "FLOAT"
+      },
+      {
+        "name": "view_rate_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "purchase_rate_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "avg_order_value",
+        "type": "FLOAT"
+      },
+      {
+        "name": "prev_day_revenue",
+        "type": "FLOAT"
+      },
+      {
+        "name": "revenue_change",
+        "type": "FLOAT"
+      },
+      {
+        "name": "revenue_growth_pct",
+        "type": "FLOAT"
+      }
+    ]
+  },
+  {
+    "id": "v_scheduler_performance",
+    "type": "VIEW",
+    "description": "",
+    "created": "2025-09-10 07:50:19",
+    "modified": "2025-09-10 07:50:19",
+    "query": "WITH scheduler_stats AS (\n  SELECT\n    COALESCE(pso.assigned_scheduler, 'unassigned') as scheduler_name,\n    COUNT(DISTINCT mf.username_std) as pages_managed,\n    COUNT(*) as messages_sent,\n    SUM(CAST(mf.sent AS INT64)) as total_sent,\n    SUM(CAST(mf.purchased AS INT64)) as total_purchased,\n    SUM(CAST(mf.earnings_usd AS FLOAT64)) as total_revenue,\n    SAFE_DIVIDE(SUM(CAST(mf.purchased AS INT64)), SUM(CAST(mf.sent AS INT64))) as conversion_rate,\n    SAFE_DIVIDE(SUM(CAST(mf.earnings_usd AS FLOAT64)), COUNT(*)) as revenue_per_message,\n    SAFE_DIVIDE(SUM(CAST(mf.earnings_usd AS FLOAT64)), COUNT(DISTINCT mf.username_std)) as revenue_per_page\n  FROM `of-scheduler-proj.core.message_facts` mf\n  LEFT JOIN `of-scheduler-proj.core.page_scheduler_override` pso\n    ON mf.username_std = pso.username_std\n  WHERE DATE(mf.sending_ts) >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)\n    AND mf.earnings_usd IS NOT NULL\n  GROUP BY 1\n),\nscheduler_ranks AS (\n  SELECT *,\n    ROW_NUMBER() OVER (ORDER BY total_revenue DESC) as revenue_rank,\n    ROW_NUMBER() OVER (ORDER BY conversion_rate DESC) as conversion_rank,\n    ROW_NUMBER() OVER (ORDER BY revenue_per_message DESC) as efficiency_rank\n  FROM scheduler_stats\n)\nSELECT\n  scheduler_name,\n  pages_managed,\n  messages_sent,\n  total_sent,\n  total_purchased,\n  ROUND(total_revenue, 2) as total_revenue,\n  ROUND(conversion_rate * 100, 2) as conversion_rate_pct,\n  ROUND(revenue_per_message, 2) as revenue_per_message,\n  ROUND(revenue_per_page, 2) as revenue_per_page,\n  revenue_rank,\n  conversion_rank,\n  efficiency_rank,\n  ROUND((revenue_rank * 0.5 + conversion_rank * 0.3 + efficiency_rank * 0.2), 1) as performance_score\nFROM scheduler_ranks\nORDER BY total_revenue DESC",
+    "schema": [
+      {
+        "name": "scheduler_name",
+        "type": "STRING"
+      },
+      {
+        "name": "pages_managed",
+        "type": "INTEGER"
+      },
+      {
+        "name": "messages_sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_sent",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_purchased",
+        "type": "INTEGER"
+      },
+      {
+        "name": "total_revenue",
+        "type": "FLOAT"
+      },
+      {
+        "name": "conversion_rate_pct",
+        "type": "FLOAT"
+      },
+      {
+        "name": "revenue_per_message",
+        "type": "FLOAT"
+      },
+      {
+        "name": "revenue_per_page",
+        "type": "FLOAT"
+      },
+      {
+        "name": "revenue_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "conversion_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "efficiency_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "performance_score",
+        "type": "FLOAT"
+      }
+    ]
+  }
+]

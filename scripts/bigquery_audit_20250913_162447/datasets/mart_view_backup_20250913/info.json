@@ -1,0 +1,25 @@
+{
+  "id": "mart_view_backup_20250913",
+  "description": "",
+  "location": "US",
+  "created": "2025-09-13 05:59:35",
+  "modified": "2025-09-13 05:59:35",
+  "access_entries": [
+    {
+      "role": "WRITER",
+      "specialGroup": "projectWriters"
+    },
+    {
+      "role": "OWNER",
+      "specialGroup": "projectOwners"
+    },
+    {
+      "role": "OWNER",
+      "userByEmail": "kyle@erosops.com"
+    },
+    {
+      "role": "READER",
+      "specialGroup": "projectReaders"
+    }
+  ]
+}

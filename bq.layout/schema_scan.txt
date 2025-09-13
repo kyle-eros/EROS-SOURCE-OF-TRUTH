@@ -1,0 +1,60 @@
+==================================================
+Dataset: archive
+==================================================
+--------------------------------------------------
+Table: archive.infloww_stats_v4_backup
+--------------------------------------------------
+[{"name":"backed_up_at","type":"TIMESTAMP"},{"name":"username","type":"STRING"},{"name":"sending_timestamp","type":"TIMESTAMP"},{"name":"sending_date","type":"DATE"},{"name":"price_usd","type":"NUMERIC"},{"name":"earnings_usd","type":"NUMERIC"},{"name":"sent","type":"INTEGER"},{"name":"viewed","type":"INTEGER"},{"name":"purchased","type":"INTEGER"},{"name":"caption_hash","type":"STRING"},{"name":"row_key_v1","type":"STRING"},{"name":"source","type":"STRING"},{"name":"loaded_at","type":"TIMESTAMP"},{"name":"sender","type":"STRING"}]
+==================================================
+Dataset: backup_20250911_pre_migration
+==================================================
+--------------------------------------------------
+Table: backup_20250911_pre_migration.caption_overrides
+--------------------------------------------------
+[{"name":"override_timestamp","type":"TIMESTAMP","mode":"REQUIRED"},{"name":"scheduler_email","type":"STRING","mode":"REQUIRED"},{"name":"username_page","type":"STRING","mode":"REQUIRED"},{"name":"slot_time","type":"STRING"},{"name":"original_caption_id","type":"STRING"},{"name":"override_caption_id","type":"STRING","mode":"REQUIRED"},{"name":"override_reason","type":"STRING"},{"name":"slot_price","type":"FLOAT"},{"name":"performance_tracked","type":"BOOLEAN","defaultValueExpression":"FALSE"}]
+--------------------------------------------------
+Table: backup_20250911_pre_migration.explore_exploit_config_v1
+--------------------------------------------------
+[{"name":"config_key","type":"STRING"},{"name":"min_obs_for_exploit","type":"INTEGER"},{"name":"max_explorer_share","type":"FLOAT"},{"name":"cold_start_days","type":"INTEGER"},{"name":"thompson_sampling_enabled","type":"BOOLEAN"},{"name":"ucb_enabled","type":"BOOLEAN"},{"name":"decay_factor","type":"FLOAT"},{"name":"updated_at","type":"TIMESTAMP"}]
+--------------------------------------------------
+Table: backup_20250911_pre_migration.ml_ranking_weights_v1
+--------------------------------------------------
+[{"name":"page_state","type":"STRING"},{"name":"w_rps","type":"FLOAT"},{"name":"w_open","type":"FLOAT"},{"name":"w_buy","type":"FLOAT"},{"name":"w_dowhod","type":"FLOAT"},{"name":"w_price","type":"FLOAT"},{"name":"w_novelty","type":"FLOAT"},{"name":"w_momentum","type":"FLOAT"},{"name":"ucb_c","type":"FLOAT"},{"name":"epsilon","type":"FLOAT"},{"name":"updated_at","type":"TIMESTAMP"},{"name":"updated_by","type":"STRING"}]
+--------------------------------------------------
+Table: backup_20250911_pre_migration.page_type_authority_snap
+--------------------------------------------------
+[{"name":"username_std","type":"STRING"},{"name":"page_type","type":"STRING"},{"name":"decided_as_of","type":"DATE"}]
+--------------------------------------------------
+Table: backup_20250911_pre_migration.scheduler_assignments_v1
+--------------------------------------------------
+[{"name":"username_std","type":"STRING"},{"name":"username_page","type":"STRING"},{"name":"scheduler_name","type":"STRING"},{"name":"scheduler_email","type":"STRING"},{"name":"is_active","type":"BOOLEAN"},{"name":"updated_at","type":"TIMESTAMP"}]
+==================================================
+Dataset: core
+==================================================
+--------------------------------------------------
+Table: core.active_overrides
+--------------------------------------------------
+[{"name":"username_std","type":"STRING"},{"name":"include","type":"BOOLEAN"},{"name":"note","type":"STRING"},{"name":"updated_at","type":"TIMESTAMP"}]
+--------------------------------------------------
+Table: core.active_overrides_backup_20250909_192001
+--------------------------------------------------
+[{"name":"username_std","type":"STRING"},{"name":"include","type":"BOOLEAN"},{"name":"note","type":"STRING"},{"name":"updated_at","type":"TIMESTAMP","defaultValueExpression":"CURRENT_TIMESTAMP()"}]
+--------------------------------------------------
+Table: core.caption_dim
+--------------------------------------------------
+[{"name":"username_std","type":"STRING"},{"name":"caption_id","type":"STRING"},{"name":"caption_hash","type":"STRING"},{"name":"caption_text","type":"STRING"},{"name":"caption_type","type":"STRING"},{"name":"explicitness","type":"STRING"},{"name":"theme_tags","type":"STRING"}]
+--------------------------------------------------
+Table: core.caption_fatigue_scores_v1
+--------------------------------------------------
+[{"name":"caption_hash","type":"STRING"},{"name":"username_page","type":"STRING"},{"name":"times_used_30d","type":"INTEGER"},{"name":"most_recent_use","type":"TIMESTAMP"},{"name":"first_use_30d","type":"TIMESTAMP"},{"name":"usage_dates","type":"DATE","mode":"REPEATED"},{"name":"avg_days_between_uses","type":"FLOAT"},{"name":"base_fatigue_score","type":"FLOAT"},{"name":"recency_multiplier","type":"FLOAT"},{"name":"usage_density","type":"FLOAT"},{"name":"fatigue_score","type":"FLOAT"},{"name":"fatigue_tier","type":"STRING"},{"name":"days_since_last_use","type":"INTEGER"},{"name":"calculated_at","type":"TIMESTAMP"}]
+--------------------------------------------------
+Table: core.cooldown_settings_v1
+--------------------------------------------------
+[{"name":"setting_key","type":"STRING"},{"name":"setting_value","type":"STRING"},{"name":"description","type":"STRING"},{"name":"updated_at","type":"TIMESTAMP","defaultValueExpression":"CURRENT_TIMESTAMP()"},{"name":"updated_by","type":"STRING"}]
+--------------------------------------------------
+Table: core.message_facts
+--------------------------------------------------
+[{"name":"row_key_v1","type":"STRING"},{"name":"message_id","type":"STRING"},{"name":"username_raw","type":"STRING"},{"name":"username_std","type":"STRING"},{"name":"sender","type":"STRING"},{"name":"sending_ts","type":"TIMESTAMP"},{"name":"sending_date","type":"DATE"},{"name":"price_usd","type":"NUMERIC"},{"name":"earnings_usd","type":"NUMERIC"},{"name":"sent","type":"INTEGER"},{"name":"viewed","type":"INTEGER"},{"name":"purchased","type":"INTEGER"},{"name":"caption_hash","type":"STRING"},{"name":"source_file","type":"STRING"},{"name":"loaded_at","type":"TIMESTAMP"}]
+--------------------------------------------------
+Table: core.page_active_current
+--------------------------------------------------

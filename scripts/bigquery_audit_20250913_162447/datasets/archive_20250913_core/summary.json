@@ -1,0 +1,9 @@
+{
+  "dataset_id": "archive_20250913_core",
+  "counts": {
+    "tables": 19,
+    "views": 0,
+    "materialized_views": 0,
+    "routines": 0
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "dataset_id": "ops_audit",
+  "counts": {
+    "tables": 0,
+    "views": 0,
+    "materialized_views": 0,
+    "routines": 0
+  }
+}

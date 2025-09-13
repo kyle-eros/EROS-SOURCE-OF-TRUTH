@@ -1,0 +1,65 @@
+{
+  "creationTime": "1757226124611",
+  "etag": "B327rh6GIrA9Pqk/gcCSYA==",
+  "id": "of-scheduler-proj:mart.v_ppv_followup_bumps_v1",
+  "kind": "bigquery#table",
+  "lastModifiedTime": "1757226124611",
+  "location": "US",
+  "numActiveLogicalBytes": "0",
+  "numBytes": "0",
+  "numLongTermBytes": "0",
+  "numLongTermLogicalBytes": "0",
+  "numRows": "0",
+  "numTotalLogicalBytes": "0",
+  "schema": {
+    "fields": [
+      {
+        "name": "username_std",
+        "type": "STRING"
+      },
+      {
+        "name": "date_local",
+        "type": "DATE"
+      },
+      {
+        "name": "slot_rank",
+        "type": "INTEGER"
+      },
+      {
+        "name": "ppv_level",
+        "type": "STRING"
+      },
+      {
+        "name": "activity_type",
+        "type": "STRING"
+      },
+      {
+        "name": "hod_local",
+        "type": "INTEGER"
+      },
+      {
+        "name": "minute_local",
+        "type": "INTEGER"
+      },
+      {
+        "name": "planned_local_datetime",
+        "type": "DATETIME"
+      },
+      {
+        "name": "scheduled_datetime_utc",
+        "type": "TIMESTAMP"
+      }
+    ]
+  },
+  "selfLink": "https://bigquery.googleapis.com/bigquery/v2/projects/of-scheduler-proj/datasets/mart/tables/v_ppv_followup_bumps_v1",
+  "tableReference": {
+    "datasetId": "mart",
+    "projectId": "of-scheduler-proj",
+    "tableId": "v_ppv_followup_bumps_v1"
+  },
+  "type": "VIEW",
+  "view": {
+    "query": "WITH cfg AS (\n  SELECT\n    CAST(COALESCE(MAX(IF(setting_key = 'randomize_offset_minutes', setting_val, NULL)), '45') AS INT64) AS jitter_m\n  FROM `of-scheduler-proj.core.settings_modeling`\n),\nppv AS (\n  SELECT t.username_std, t.tz, t.date_local, t.slot_rank, t.hod_local, t.price_usd\n  FROM `of-scheduler-proj.mart.weekly_template_7d_latest` t\n  WHERE t.price_usd > 0\n),\nlevel AS (\n  SELECT\n    p.*,\n    CASE\n      WHEN p.price_usd >= COALESCE(pr.p90, p.price_usd) THEN 'premium'\n      WHEN p.price_usd >= COALESCE(pr.p50, p.price_usd) THEN 'mid'\n      ELSE 'teaser'\n    END AS ppv_level\n  FROM ppv p\n  LEFT JOIN `of-scheduler-proj.mart.v_mm_price_profile_90d_v2` pr USING (username_std)\n),\nrules AS (\n  -- order_i = 0 are \"pre\" bumps; positive order_i are follow-ups\n  SELECT 'teaser'   AS lvl, 0 AS order_i, -9999 AS min_off, -9999 AS max_off, FALSE AS is_real  -- no pre for teaser\n  UNION ALL SELECT 'teaser', 1,  20,  45, TRUE\n  UNION ALL SELECT 'mid',    0, -20, -15, TRUE\n  UNION ALL SELECT 'mid',    1,  15,  20, TRUE\n  UNION ALL SELECT 'mid',    2,  45,  45, TRUE\n  UNION ALL SELECT 'premium',0, -20, -15, TRUE\n  UNION ALL SELECT 'premium',1,  20,  30, TRUE\n  UNION ALL SELECT 'premium',2,  40,  55, TRUE\n),\nbase AS (\n  SELECT\n    l.username_std,\n    l.tz,\n    l.date_local,\n    l.slot_rank,\n    l.hod_local,\n    l.ppv_level,\n    r.order_i,\n    r.is_real,\n    DATETIME(l.date_local, TIME(l.hod_local, 0, 0)) AS base_slot_dt_local,\n\n    -- Deterministic pick in [min_off, max_off] using a stable key\n    CAST(ROUND(\n      r.min_off + MOD(\n        ABS(FARM_FINGERPRINT(CONCAT(\n          CAST(l.username_std AS STRING),'|',\n          CAST(l.date_local   AS STRING),'|',\n          CAST(l.slot_rank    AS STRING),'|',\n          CAST(r.order_i      AS STRING)\n        ))),\n        (r.max_off - r.min_off + 1)\n      )\n    ) AS INT64) AS picked_min\n  FROM level l\n  JOIN rules r ON r.lvl = l.ppv_level\n  WHERE r.is_real = TRUE\n),\nexpanded AS (\n  SELECT\n    b.*,\n    DATETIME_ADD(b.base_slot_dt_local, INTERVAL b.picked_min MINUTE) AS planned_dt_local\n  FROM base b\n),\njittered AS (\n  SELECT\n    e.*,\n    -- Deterministic jitter in [-jitter_m, +jitter_m] using a separate key namespace (\"|J\")\n    DATETIME_ADD(\n      e.planned_dt_local,\n      INTERVAL CAST(\n        MOD(\n          ABS(FARM_FINGERPRINT(CONCAT(\n            CAST(e.username_std AS STRING),'|',\n            CAST(e.date_local   AS STRING),'|',\n            CAST(e.slot_rank    AS STRING),'|',\n            CAST(e.order_i      AS STRING),'|','J'\n          ))),\n          (2 * (SELECT jitter_m FROM cfg) + 1)\n        ) - (SELECT jitter_m FROM cfg) AS INT64\n      ) MINUTE\n    ) AS planned_dt_local_j\n  FROM expanded e\n)\nSELECT\n  j.username_std,\n  j.date_local,\n  j.slot_rank,\n  j.ppv_level AS ppv_level,\n  CASE WHEN j.order_i = 0 AND j.ppv_level IN ('mid','premium') THEN 'ppv_pre_teaser'\n       ELSE 'ppv_followup' END AS activity_type,\n  EXTRACT(HOUR   FROM j.planned_dt_local_j) AS hod_local,\n  EXTRACT(MINUTE FROM j.planned_dt_local_j) AS minute_local,\n  j.planned_dt_local_j AS planned_local_datetime,\n  TIMESTAMP(j.planned_dt_local_j, pd.tz)    AS scheduled_datetime_utc\nFROM jittered j\nJOIN `of-scheduler-proj.core.page_dim` pd USING (username_std)",
+    "useLegacySql": false
+  }
+}
